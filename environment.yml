@@ -1,0 +1,17 @@
+name: snuffelfiets
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3
+  - pip
+  - jupyter
+  - matplotlib
+  - numpy
+  - pandas
+  - ipywidgets
+  - plotly
+  - ipywidgets>=7.6
+  - nbformat>=4.2.0
+  - conda-build
+  - geopy
