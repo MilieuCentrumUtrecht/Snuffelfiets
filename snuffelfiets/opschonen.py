@@ -86,8 +86,9 @@ def _get_mask(df, col, corr):
     return mask
 
 
-def verwijder_records():
-    """
+def verwijder_errors(df, error_codes=[]):
+    """Verwijder metingen met specifieke error codes.
+
     https://ckan.dataplatform.nl/dataset/snuffelfiets-extra-informatie-snifferbike-additional-info
     ------------------------------------------------------------------
     Name                                        number  Note
@@ -108,7 +109,14 @@ def verwijder_records():
     Reserved                                    8192    
     Reserved                                    16384   
     Reserved                                    32768   
-    
     """
 
-    pass
+    if error_codes == []:
+        error_codes = set(np.unique(df.error_code)) - set([0])
+
+    for error_code in error_codes:
+        df = df.drop(df[df['error_code'] == error_code].index)
+
+    print(f'Error codes remaining: {np.unique(df.error_code)}')
+
+    return df
