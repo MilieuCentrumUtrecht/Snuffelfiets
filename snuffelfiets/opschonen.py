@@ -120,3 +120,53 @@ def verwijder_errors(df, error_codes=[]):
     print(f'Error codes remaining: {np.unique(df.error_code)}')
 
     return df
+
+
+def filter_columns(df, cols):
+    """Filter kolommen met een list van kolomnamen."""
+
+    return df[cols]
+
+
+def filter_rows(df, filters):
+    """Verwijder metingen buiten de gespecificeerde ranges.
+
+    filters = 'latitude >= 50 & latitude < 54 & longitude >= 3.1 & longitude < 7.1'
+
+    filters = {
+        'column_name1': [0, 10],
+        'column_name2': [20, 30],
+        }
+    """
+
+    if isinstance(filters, str):
+
+        df = filter_by_query(df, filters)
+
+    elif isinstance(filters, dict):
+
+        df = filter_by_range(df, filters)
+
+    return df
+
+
+def filter_by_query(df, filter):
+    """Filter een dataframe met een query string."""
+
+    return df.query(filter)
+
+
+def filter_by_range(df, filters):
+    """Filter een dataframe met value ranges."""
+
+    for col_name, col_range in filters.items():
+
+        if col_range[0] is None:
+            col_range[0] = df[col_name].min()
+
+        if col_range[1] is None:
+            col_range[1] = df[col_name].max()
+
+        df = df[(df[col_name] >= col_range[0]) & (df[col_name] < col_range[1])]
+
+    return df
