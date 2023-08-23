@@ -75,8 +75,7 @@ def verdeel_in_ritten(df, t_seconden=1800, split_timestamp=False):
     return df
 
 def aantal_ritten(df):
- """Bereken het totaal aantal ritten."""
-    return verdeel_in_ritten(df)["rit_id"].values[-1]
+    return sum(aantal_ritten_per_persoon(df)[:,1])
 
 def aantal_ritten_per_persoon(df):
     """Bereken het totaal aantal ritten per persoon"""
