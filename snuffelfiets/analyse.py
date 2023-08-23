@@ -20,10 +20,6 @@ def aantal_fietsers(df):
     return len(unique_ids)
 
 
-def aantal_ritten(df):
-    """Bereken het totaal aantal ritten."""
-
-    pass
 
 
 def bewerk_timestamp(df, split=False):
@@ -77,6 +73,25 @@ def verdeel_in_ritten(df, t_seconden=1800, split_timestamp=False):
     df = _sort(df)
 
     return df
+
+def aantal_ritten(df):
+ """Bereken het totaal aantal ritten."""
+    return verdeel_in_ritten(df)["rit_id"].values[-1]
+
+def aantal_ritten_per_persoon(df):
+    """Bereken het totaal aantal ritten per persoon"""
+    df_new = verdeel_in_ritten(df)
+    
+    unique_ids = np.unique(df_new.entity_id)
+    
+    data = np.ones([len(unique_ids),2])
+    for i in range(len(unique_ids)):
+        data[i,0] = unique_ids[i]
+        mask = df_new.entity_id == unique_ids[i]
+        data[i,1] = df_new[mask].rit_id.values[-1]        
+        
+    return data        
+
 
 
 def bereken_afstanden(df):
