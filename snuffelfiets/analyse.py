@@ -20,8 +20,6 @@ def aantal_fietsers(df):
     return len(unique_ids)
 
 
-
-
 def bewerk_timestamp(df, split=False):
     """Maak kolommen met datetime objects.
     
@@ -74,8 +72,10 @@ def verdeel_in_ritten(df, t_seconden=1800, split_timestamp=False):
 
     return df
 
+
 def aantal_ritten(df):
     return sum(aantal_ritten_per_persoon(df)[:,1])
+
 
 def aantal_ritten_per_persoon(df):
     """Bereken het totaal aantal ritten per persoon"""
@@ -90,7 +90,6 @@ def aantal_ritten_per_persoon(df):
         data[i,1] = df_new[mask].rit_id.values[-1]        
         
     return data        
-
 
 
 def bereken_afstanden(df):
@@ -113,6 +112,15 @@ def bereken_afstanden(df):
             df.latitude.shift(),
             df.longitude.shift(),
             df['duur'],
+            )
+
+    df['snelheid'] = df['afstand_gd'] / df['duur'].dt.total_seconds()
+
+    df['afstand_dom'] = np.vectorize(
+        calculate_distance_to_point,
+        otypes=[np.float64])(
+            df.latitude,
+            df.longitude,
             )
 
     return df
@@ -152,3 +160,14 @@ def calculate_distance(latitude, longitude, shifted_lat, shifted_lon, duur):
             ).m
     else:
         return 0
+
+
+def calculate_distance_to_point(latitude, longitude, point=dict(lat=52.090695, lon=5.121314)):
+    """Bereken de geodesic distance in meters."""
+
+    return gd(
+        (latitude, longitude),
+        (point['lat'], point['lon']),
+        ).m
+
+
