@@ -10,8 +10,17 @@ import numpy as np
 import plotly.figure_factory as ff
 
 
-def hexbin_mapbox(df, hexbin_args={}, layout_args={}):
+def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
     """Maak een hexbin plot."""
+
+    if hexagon_size is not None:
+        hexbin_args['nx_hexagon'] = np.ceil(
+            (df['longitude'].max() - df['longitude'].min()) / hexagon_size,
+            ).astype('int')
+
+    if hexbin_args['nx_hexagon'] > 500:
+        print('Too many hexagons; please increase hexagon_size')
+        return
 
     default_hexbin_args = dict(
         data_frame=df,
@@ -19,7 +28,7 @@ def hexbin_mapbox(df, hexbin_args={}, layout_args={}):
         lon='longitude',
         agg_func=np.average,
         color='pm2_5',
-        animation_frame=None,  # 'month'
+        animation_frame=None,
         color_continuous_scale=['green', 'red'],
         range_color=[0, 50],
         show_original_data=False,
