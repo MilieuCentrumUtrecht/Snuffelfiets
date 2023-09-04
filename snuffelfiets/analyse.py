@@ -23,7 +23,7 @@ def aantal_fietsers(df):
 def bewerk_timestamp(df, split=False):
     """Maak kolommen met datetime objects.
     
-    evt. uitgesplitst in dag, week, maand, jaar
+    evt. uitgesplitst in dag, week, maand, kwartaal, jaar
     """
 
     df['date_time'] = pd.to_datetime(
@@ -36,6 +36,7 @@ def bewerk_timestamp(df, split=False):
         df['day'] = df['date_time'].dt.dayofyear
         df['week'] = df['date_time'].dt.isocalendar().week
         df['month'] = df['date_time'].dt.month
+        df['quarter'] = df['date_time'].dt.quarter
         df['year'] = df['date_time'].dt.year
 
     return df
