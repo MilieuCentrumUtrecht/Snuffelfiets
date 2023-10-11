@@ -16,5 +16,6 @@ dependencies:
   - conda-build
   - geopy
   - pandas
+  - geopandas
   - pip:
     - kaleido
