@@ -6,6 +6,9 @@
 
 """
 
+import json
+from pathlib import Path
+
 import numpy as np
 import plotly.figure_factory as ff
 import plotly.express as px
@@ -128,3 +131,47 @@ def discrete_colorscale(bvals=[], colors=[]):
     return dcolorscale 
 
 
+def get_borders_utrecht(
+        directory,
+        filename_provincies='provincies_gegeneraliseerd_2023.geojson',
+        filename_gemeenten='gemeenten_gegeneraliseerd_2023.geojson',
+        ):
+    """Return the provincial and township borders of Utrecht."""
+
+    provincies = load_polygons_geojson(directory, filename_provincies)
+    names = ['Utrecht']
+    provincies = select_polygons(provincies, names)
+
+    gemeenten = load_polygons_geojson(directory, filename_gemeenten)
+    names = [
+        'Amersfoort', 'Baarn', 'De Bilt', 'Bunnik', 'Bunschoten',
+        'Eemnes', 'Houten','IJsselstein', 'Leusden', 'Lopik',
+        'Montfoort', 'Nieuwegein', 'Oudewater', 'Renswoude', 'Rhenen',
+        'De Ronde Venen', 'Soest', 'Stichtse Vecht', 'Utrecht',
+        'Utrechtse Heuvelrug', 'Veenendaal', 'Vijfheerenlanden',
+        'Wijk bij Duurstede', 'Woerden', 'Woudenberg', 'Zeist',
+        ]
+    gemeenten = select_polygons(gemeenten, names)
+
+    return provincies, gemeenten
+
+
+def load_polygons_geojson(directory, filename):
+    """"Read a json file."""
+
+    p = Path(directory, filename).expanduser()
+    with open(p) as json_file:
+        polygons = json.load(json_file)
+
+    return polygons
+
+
+def select_polygons(polygons_in, names, prop='statnaam'):
+    """Select a subset of the (CBS) geojson by name."""
+
+    polygons = {}
+    polygons['type'] = polygons_in['type']
+    feats = [feat for feat in polygons_in['features'] if feat['properties'][prop] in names]
+    polygons['features'] = feats
+
+    return polygons
