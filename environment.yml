@@ -19,3 +19,4 @@ dependencies:
   - geopandas
   - pip:
     - kaleido
+    - knmi-py

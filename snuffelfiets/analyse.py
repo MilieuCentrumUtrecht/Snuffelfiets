@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 from geopy.distance import geodesic as gd
 
+import knmi
+
 
 def aantal_fietsers(df):
     """Bereken het aantal fietsers."""
@@ -310,3 +312,23 @@ def summary_stats(df):
         'afstand': {'N': N_km, 'G': G_km, 'M': M_km},
     }
 
+
+def import_knmi_data(dt_min='', dt_max='', interval='dag', stations=[260], variables=['RH']):
+    """Import summary weather data from the KNMI."""
+
+    if not dt_min:
+        dt_min = df['date_time'].min()
+    if not dt_max:
+        dt_max = df['date_time'].max()
+
+    if isinstance(dt_min, str):
+        dt_min = pd.Timestamp(dt_min)
+    if isinstance(dt_max, str):
+        dt_max = pd.Timestamp(dt_max)
+
+    if interval == 'dag':
+        df = knmi.get_day_data_dataframe(stations, dt_min, dt_max, False, variables)
+    else:
+        df = knmi.get_hour_data_dataframe(stations, dt_min, dt_max, False, variables)
+
+    return df
