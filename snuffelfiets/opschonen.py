@@ -239,3 +239,18 @@ def filter_by_range(df, filters):
         df = df[(df[col_name] >= col_range[0]) & (df[col_name] < col_range[1])]
 
     return df
+
+
+def filter_lat_lon(df, latlon={}):
+
+    coord_query = ''
+    for col, q in latlon.items():
+        coord_query += f"{col} >= {q['center'] - q['extent']}"
+        coord_query += ' & '
+        coord_query += f"{col} < {q['center'] + q['extent']}"
+        coord_query += ' & '
+    coord_query = coord_query.strip(' & ')
+
+    df = filter_rows(df, filters=coord_query)
+
+    return df

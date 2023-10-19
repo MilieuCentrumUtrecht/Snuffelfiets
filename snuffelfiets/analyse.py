@@ -275,6 +275,10 @@ def filter_ritten(df, min_measurements=2, max_duration=360, max_distance=200, mi
 
 
 def summary_stats(df):
+    """Calculate statistics for ride count, duration and distance.
+    
+    N: total sums, G: averages, M: max of the entity_id's.
+    """
 
     # aantal fietsers
     N_fietsers = len(np.unique(df.entity_id))
@@ -292,7 +296,7 @@ def summary_stats(df):
     dft = df.loc[:, ['entity_id', 'duur']].groupby(['entity_id']).sum()
     M_uren = int(max(dft['duur'] / np.timedelta64(1, 'h')))
 
-    # # aantal kilometers
+    # aantal kilometers
     dft = df.loc[:, ['afstand']].sum() / 1000
     N_km = dft.iloc[0]
     G_km = N_km / N_fietsers
