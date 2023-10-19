@@ -10,8 +10,7 @@ import numpy as np
 
 
 # sommige data moet worden aangepast:
-# https://ckan-dataplatform-nl.dataplatform.nl/dataset/
-#       near-real-time-onbewerkte-snuffelfiets-gegevens-provincie-utrecht
+# https://ckan-dataplatform-nl.dataplatform.nl/dataset/near-real-time-onbewerkte-snuffelfiets-gegevens-provincie-utrecht
 
 CORRECTIE_DEFAULTS = {
     'temperature': {
@@ -51,6 +50,29 @@ CORRECTIE_DEFAULTS = {
 }
 
 
+# https://ckan.dataplatform.nl/dataset/snuffelfiets-extra-informatie-snifferbike-additional-info
+
+ERROR_DESCRIPTIONS = {
+    0: ['No Error', 'No Error'],
+    1: ['ACCELEROMETER ERROR 1: Sensor Not Found', 'Critical Error'],
+    2: ['Reserved', ''],
+    4: ['BME ERROR 1: Sensor Not Found', 'Critical Error'],
+    8: ['BME ERROR 2: Failed to begin reading', 'Critical Error'],
+    16: ['GPS ERROR 1: Sensor Not Found', 'Critical Error'],
+    32: ['GPS ERROR 2: No GPS Fix', 'Allowed Error, device maybe indoors'],
+    64: ['Reserved', ''],
+    128: ['NO2 ERROR 1: Sensor Not Found', 'Should never be seen, NO2 removed in software.'],
+    256: ['Reserved', ''],
+    512: ['PM ERROR 1: Sensor Not Found', 'Critical Error'],
+    1024: ['PM ERROR 2a: Measurement Start Failure', 'Critical Error'],
+    2048: ['PM ERROR 2b: Measurement Read Failure', 'Allowed Error, PM sensors nt ready. Wait 5 more measurements.'],
+    4096: ['PM ERROR 2c: Measurement Accuracy Uncertain', 'Critical Error'],
+    8192: ['Reserved', ''],
+    16384: ['Reserved', ''],
+    32768: ['Reserved', ''],
+}
+
+
 def correct_units(df, correcties=CORRECTIE_DEFAULTS):
     """Converteer de ruwe data naar correcte units."""
 
@@ -59,6 +81,8 @@ def correct_units(df, correcties=CORRECTIE_DEFAULTS):
         # doe niets als item niet gespecificeerd
         default = {'factor': 1.0, 'offset': 0, 'conditie': None}
         corr = {**default, **correctie}
+
+        print(f'Correcting column {col:12} using {correctie}')
 
         mask = _get_mask(df, col, corr)
 
@@ -86,7 +110,42 @@ def _get_mask(df, col, corr):
     return mask
 
 
-def verwijder_errors(df, error_codes=[]):
+def analyse_errors(df):
+    """Print a short error breakdown."""
+
+    error_codes = np.unique(df['error_code'])
+
+    for error_code in error_codes:
+
+        N = len(df[df['error_code']==error_code])
+
+        print(f'code {error_code:10}: count {N:15}')
+
+        compound = split_error_code(error_code)
+
+        for ec in compound:
+            descr = ERROR_DESCRIPTIONS[ec]
+            d = ' '
+            print(f'{ec:15}: {d:22} type       : {descr[1]}')
+            print(f'{ec:15}: {d:22} description: {descr[0]}')
+
+
+def split_error_code(error_code):
+    """Split compound bitwise error codes."""
+
+    nbits = len(bin(error_code)[2:])
+
+    bits = [(error_code >> bit) & 1 for bit in range(nbits - 1, -1, -1)]
+
+    error_codes = []
+    for pos, bit in enumerate(bits[::-1]):
+        if bit:
+            error_codes += [2**pos]
+
+    return error_codes
+
+
+def verwijder_errors(df, error_codes=[], print_breakdown=False):
     """Verwijder metingen met specifieke error codes.
 
     https://ckan.dataplatform.nl/dataset/snuffelfiets-extra-informatie-snifferbike-additional-info
@@ -111,13 +170,23 @@ def verwijder_errors(df, error_codes=[]):
     Reserved                                    32768   
     """
 
+    if print_breakdown:
+        analyse_errors(df)
+
     if error_codes == []:
         error_codes = set(np.unique(df.error_code)) - set([0])
 
+    mask = np.zeros_like(df.error_code)
     for error_code in error_codes:
-        df = df.drop(df[df['error_code'] == error_code].index)
+        emask = df['error_code'] == error_code
+        print(f'Removing {np.sum(emask):15} measurements with error_code {error_code:15}')
+        mask |= emask
 
+    df = df[~mask]
+
+    print(f'')
     print(f'Error codes remaining: {np.unique(df.error_code)}')
+    print(f'Measurements remaining: {df.shape[0]}.')
 
     return df
 
