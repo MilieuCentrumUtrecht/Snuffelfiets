@@ -272,3 +272,37 @@ def filter_ritten(df, min_measurements=2, max_duration=360, max_distance=200, mi
     df = df[df['rit_id'].isin(np.unique(df_ritten['rit_id']))]
 
     return df
+
+
+def summary_stats(df):
+
+    # aantal fietsers
+    N_fietsers = len(np.unique(df.entity_id))
+
+    # aantal ritten
+    N_ritten = len(np.unique(df.rit_id))
+    G_ritten = N_ritten / N_fietsers
+    dft = df.loc[:, ['entity_id', 'rit_id']].groupby(['entity_id']).nunique()
+    M_ritten = int(max(dft['rit_id']))
+
+    # aantal uren
+    dft = df.loc[:, ['duur']].sum() / np.timedelta64(1, 'h')
+    N_uren = dft.iloc[0]
+    G_uren = N_uren / N_fietsers
+    dft = df.loc[:, ['entity_id', 'duur']].groupby(['entity_id']).sum()
+    M_uren = int(max(dft['duur'] / np.timedelta64(1, 'h')))
+
+    # # aantal kilometers
+    dft = df.loc[:, ['afstand']].sum() / 1000
+    N_km = dft.iloc[0]
+    G_km = N_km / N_fietsers
+    dft = df.loc[:, ['entity_id', 'afstand']].groupby(['entity_id']).sum()
+    M_km = max(dft['afstand']) / 1000
+
+    return {
+        'fietsers': {'N': N_fietsers, 'G': None, 'M': None},
+        'ritten': {'N': N_ritten, 'G': G_ritten, 'M': M_ritten},
+        'uren': {'N': N_uren, 'G': G_uren, 'M': M_uren},
+        'afstand': {'N': N_km, 'G': G_km, 'M': M_km},
+    }
+
