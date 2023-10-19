@@ -54,23 +54,48 @@ def call_api(
         'limit': 9999999,
     }
 
-    print(f'\nurl= {url}')
-    print(f'\nsql-statement= {params["sql"]}')
+    print(f'url= {url}')
+    print(f'sql-statement= {params["sql"]}')
 
-    # begin kernprogramma
     start_time = time.time()
     response = requests.get(url, headers=headers, params=params)
 
     if response.status_code != 200:
-        exit(f'\napi-call mislukt: foutcode= {response.status_code}; {response.text}\n')
+        exit(f'api-call mislukt: foutcode= {response.status_code}; {response.text}\n')
 
     jfile = json.loads(response.text)
     df = pd.DataFrame(jfile['result']['records'])
 
-    # '_full_text' is een column, waar alle gegevens nog 'n keer instaan als een lange string ('gescheiden)
-    df = df.drop('_full_text', axis=1)  
+    df = drop_columns(df)
+    df = convert_to_int(df)
 
-    print(f'Data gelezen in: {time.time() - start_time} s.')
+    print(f'Read {df.shape[0]} measurements in {time.time() - start_time} s.')
+    print(f'\n')
+
+    return df
+
+
+def drop_columns(df, columns=['_full_text']):
+    """Drop superfluous columns.
+    
+    '_full_text' is een column, waar alle gegevens nog
+    enn keer instaan als een lange string ('gescheiden)
+    """
+
+    df = df.drop(columns, axis=1)
+
+    print(f'Dropped {columns} columns.')
+
+    return df
+
+
+def convert_to_int(df, columns=['entity_id', 'version_major', 'version_minor', 'error_code']):
+    """Convert the object datatype to int64."""
+    
+    for col in columns:
+        df[col]= df[col].astype('int64')
+
+    print(f'Converted {columns} columns to int64.')
 
     return df
 
