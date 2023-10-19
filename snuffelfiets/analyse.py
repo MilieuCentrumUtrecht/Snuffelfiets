@@ -26,6 +26,7 @@ def bewerk_timestamp(df, split=False):
     evt. uitgesplitst in dag, week, maand, kwartaal, jaar
     """
 
+    columns = ['date_time']
     df['date_time'] = pd.to_datetime(
         df['recording_timestamp'],
         format='%Y-%m-%dT%H:%M:%S',
@@ -33,11 +34,14 @@ def bewerk_timestamp(df, split=False):
     df = _sort(df)
 
     if split:
+        columns += ['day', 'week', 'month', 'quarter', 'year']
         df['day'] = df['date_time'].dt.dayofyear
         df['week'] = df['date_time'].dt.isocalendar().week
         df['month'] = df['date_time'].dt.month
         df['quarter'] = df['date_time'].dt.quarter
         df['year'] = df['date_time'].dt.year
+
+    print(f"Added {columns} columns to dataframe.")
 
     return df
 
@@ -172,3 +176,99 @@ def calculate_distance_to_point(latitude, longitude, point=dict(lat=52.090695, l
         ).m
 
 
+def split_in_ritten(df, t_seconden=1800):
+    """For each entity_id, split in separate bike rides.
+     
+       add columns with duration, distance and speed.
+    """
+
+    df['duur'] = np.timedelta64(0, 's')
+    df['rit_id'] = 0
+    df['afstand'] = 0.
+    df['snelheid'] = 0.
+
+    for id, df_id in df.groupby('entity_id'):
+
+        # Calculate the time difference between measurements.
+        df_id['duur'] = df_id['date_time'].diff().fillna(np.timedelta64(0, 's'))
+        # Threshold the time interval to identify new rides.
+        rit_mask = df_id['duur'] >= pd.Timedelta(seconds=t_seconden)
+        df_id['duur'][rit_mask] = np.timedelta64(0, 's')
+
+        # Fill the rit_id column.
+        df_id['rit_id'] = df['rit_id'].max() + 1
+        df_id['rit_id'] += rit_mask.astype(int).cumsum()
+
+        # Calculate the distance between measurements.
+        df_id['afstand'] = haversine(
+            df_id.latitude,
+            df_id.longitude,
+            df_id.latitude.shift(),
+            df_id.longitude.shift(),
+            )
+        df_id['afstand'][rit_mask] = 0.
+
+        # Calculate the speed for each measurement.
+        df_id['snelheid'] = df_id['afstand'] / df_id['duur'].dt.total_seconds()
+
+        # Copy data from entity_id to the collated dataframe.
+        columns = ['duur', 'afstand', 'snelheid', 'rit_id']
+        for col in columns:
+            df.loc[df_id.index, col] = df_id[col]
+
+    print(f"Added {columns} columns to dataframe.")
+
+    return df
+
+
+def filter_ritten(df, min_measurements=2, max_duration=360, max_distance=200, min_average_speed=1, max_average_speed=35):
+    """Filter the rides."""
+
+    # Aggregate over rit_id
+    options = {
+        'rit_id': ['count'],
+        'duur':['sum'],
+        'afstand': ['sum'],
+        'snelheid': ['mean'],
+        }
+    df_ritten = df.groupby(['entity_id', 'rit_id']).agg(options)
+    df_ritten = df_ritten.reset_index(level=['entity_id', 'rit_id'])
+
+    # Rename the columns.
+    cols = ['entity_id', 'rit_id', 'aantal_waarn', 'duur', 'afstand', 'snelheid_mean']
+    df_ritten = df_ritten.set_axis(cols, axis=1)
+
+    def apply_mask(df_ritten, mask, reasons=''):
+
+        regels_voor = len(df_ritten)
+        df_ritten = df_ritten[mask].reset_index(drop=True)
+        Ndel = regels_voor - len(df_ritten)
+        print(f'{Ndel:10} rides were removed because {reasons}')
+
+        return df_ritten
+
+    # Apply the filters
+    mask = df_ritten['aantal_waarn'] >= min_measurements
+    reason = f'number of measurements was < {min_measurements}'
+    df_ritten = apply_mask(df_ritten, mask, reason)
+
+    mask = df_ritten['duur'] < np.timedelta64(max_duration * 60, 's')
+    reason = f'duration was >= {max_duration} minutes'
+    df_ritten = apply_mask(df_ritten, mask, reason)
+
+    mask = df_ritten['afstand'] < max_distance * 1000
+    reason = f'distance was >= {max_distance} kilometers'
+    df_ritten = apply_mask(df_ritten, mask, reason)
+
+    mask = df_ritten['snelheid_mean'] < max_average_speed * 1000 / 3600
+    reason = f'average speed was >= {max_average_speed} km/h'
+    df_ritten = apply_mask(df_ritten, mask, reason)
+
+    mask = df_ritten['snelheid_mean'] >= min_average_speed * 1000 / 3600
+    reason = f'average speed was < {min_average_speed} km/h'
+    df_ritten = apply_mask(df_ritten, mask, reason)
+
+    # Only retain rit_ids that are still in df_ritten
+    df = df[df['rit_id'].isin(np.unique(df_ritten['rit_id']))]
+
+    return df
