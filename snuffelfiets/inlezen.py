@@ -12,7 +12,9 @@ import pandas as pd
 import time
 from sys import argv, exit
 from datetime import datetime
+from pathlib import Path
 
+from . import opschonen
 
 # https://stackoverflow.com/questions/69845270/use-pandas-style-using-comma-as-decimal-separator
 
@@ -98,6 +100,20 @@ def convert_to_int(df, columns=['entity_id', 'version_major', 'version_minor', '
     print(f'Converted {columns} columns to int64.')
 
     return df
+
+
+def monthly_csv_dump(api_key, year, month, data_directory='.', prefix='api_gegevens'):
+    """Save a month of data as CSV."""
+
+    start_datum = f'{year}-{month:02d}-01'
+    stop_datum = f'{year+1}-01-01' if month==12 else f'{year}-{month+1:02d}-01'
+
+    df = call_api(api_key, start_datum, stop_datum)
+    df = opschonen.correct_units(df)
+
+    filename = f'{prefix}_{year}-{month:02d}.csv'
+    p = Path(data_directory, filename)
+    df.to_csv(p, index=False)
 
 
 if __name__ == '__main__':
