@@ -7,6 +7,7 @@
 """
 
 import json
+import urllib.request
 from pathlib import Path
 
 import numpy as np
@@ -131,12 +132,31 @@ def discrete_colorscale(bvals=[], colors=[]):
     return dcolorscale 
 
 
+def download_borders_utrecht(directory, year=2023, levels=['gemeente', 'provincie']):
+    """Download PDOK data to file.
+
+    # NOTE: This is a workaround for an error on the API call
+    """
+
+    filepaths = []
+    for level in levels:
+        filepath = Path(directory, f'{level}_gegeneraliseerd_{year:d}.geojson')
+        if not Path.exists(filepath):
+            url = f'https://service.pdok.nl/cbs/gebiedsindelingen/{year:d}/wfs/v1_0?request=GetFeature&service=WFS&version=2.0.0&typeName={level}_gegeneraliseerd&outputFormat=json'
+            urllib.request.urlretrieve(url, filepath)
+        filepaths.append(filepath)
+
+    return filepaths
+
+
 def get_borders_utrecht(
         directory,
         filename_provincies='provincies_gegeneraliseerd_2023.geojson',
         filename_gemeenten='gemeenten_gegeneraliseerd_2023.geojson',
         ):
-    """Return the provincial and township borders of Utrecht."""
+    """Return the provincial and township borders of Utrecht.
+    
+    """
 
     provincies = load_polygons_geojson(directory, filename_provincies)
     names = ['Utrecht']
