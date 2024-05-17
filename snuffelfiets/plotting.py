@@ -19,15 +19,6 @@ from plotly.colors import hex_to_rgb
 def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
     """Maak een hexbin plot."""
 
-    if hexagon_size is not None:
-        hexbin_args['nx_hexagon'] = np.ceil(
-            (df['longitude'].max() - df['longitude'].min()) / hexagon_size,
-            ).astype('int')
-
-    if hexbin_args['nx_hexagon'] > 500:
-        print('Too many hexagons; please increase hexagon_size')
-        return
-
     default_hexbin_args = dict(
         data_frame=df,
         lat='latitude',
@@ -52,6 +43,15 @@ def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
 
     hexbin_args = {**default_hexbin_args, **hexbin_args}
     layout_args = {**default_layout_args, **layout_args}
+
+    if hexagon_size is not None:
+        hexbin_args['nx_hexagon'] = np.ceil(
+            (df['longitude'].max() - df['longitude'].min()) / hexagon_size,
+            ).astype('int')
+
+    if hexbin_args['nx_hexagon'] > 500:
+        print('Too many hexagons; please increase hexagon_size')
+        return
 
     fig = ff.create_hexbin_mapbox(**hexbin_args)
     fig.update_layout(**layout_args)
@@ -94,7 +94,6 @@ def save_fig(fig, outputstem, fig_formats=['html', 'pdf']):
             fig.write_html(f"{outputstem}.{fig_format}")
         else:
             fig.write_image(f"{outputstem}.{fig_format}")
-
 
 
 def discrete_colorscale(bvals=[], colors=[]):
