@@ -176,7 +176,7 @@ def verwijder_errors(df, error_codes=[], print_breakdown=False):
     if error_codes == []:
         error_codes = set(np.unique(df.error_code)) - set([0])
 
-    mask = np.zeros_like(df.error_code)
+    mask = np.zeros_like(df.error_code, dtype='bool')
     for error_code in error_codes:
         emask = df['error_code'] == error_code
         print(f'Removing {np.sum(emask):15} measurements with error_code {error_code:15}')
