@@ -16,8 +16,6 @@ from pathlib import Path
 
 from . import opschonen
 
-# https://stackoverflow.com/questions/69845270/use-pandas-style-using-comma-as-decimal-separator
-
 
 def is_date_matching(date_str):
     """Perform date format check."""
@@ -31,43 +29,103 @@ def is_date_matching(date_str):
         return False
 
 
+def _get_chunk(url, headers, params):
+    """Get a single chunk of (limit=32000) observations."""
+
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code != 200:
+        msg = f'api-call mislukt:'
+        msg += f' foutcode: {response.status_code};'
+        msg += f' {response.text}\n'
+        exit()
+    jfile = json.loads(response.text)
+    records = jfile['result']['records']
+
+    return records
+
+
+def get_records(url, headers, params, limit=32000, offset=0):
+    """Get all records for a query."""
+
+    sql_base = f'{params["sql"]}'
+    records = []
+    truncated = True
+    i = 1
+
+    while truncated:
+        params["sql"] = f'{sql_base} OFFSET {offset}'
+        chunk = _get_chunk(url, headers, params)
+        truncated = len(chunk) == limit
+        records += chunk
+        offset += limit
+        msg = f'Read chunk {i:02d}'
+        msg += f' up to timestamp {chunk[-1]["recording_timestamp"]}'
+        print(msg)
+        i += 1
+
+    return records
+
+
+def build_sql_statement(
+    columns='*',
+    datastore='provincie_utrecht_snuffelfiets_measurement_rydruofi',
+    conditions=[],
+    parameters={},
+    ):
+
+    sql = ''
+    sql += f'SELECT {columns} FROM "{datastore}"'
+
+    sql += f' WHERE'
+    for condition in conditions:
+        sql += f' "{condition["col"]}" {condition["op"]} \'{condition["val"]}\''
+        sql += f' AND'
+    sql = sql[:-4]
+
+    for k, v in parameters.items():
+        sql += f' {k.upper()} {v}'
+
+    return sql
+
+
 def call_api(
-        api_key,
-        start_datum,
-        stop_datum,
-        columns='*',
-        url='https://ckan-dataplatform-nl.dataplatform.nl/api/3/action/datastore_search_sql',
-        ):
+    api_key,
+    start_datum,
+    stop_datum,
+    columns='*',
+    url='https://ckan-dataplatform-nl.dataplatform.nl/api/3/action/datastore_search_sql',
+    datastore='provincie_utrecht_snuffelfiets_measurement_rydruofi',
+    resource_id='4cfb5177-d3db-4efc-ac6f-351af75f9f92',
+    sql_conditions=[],
+    sql_parameters={'limit': 32000},  # CKAN limit is 32000 records  , 'offset': 0
+    ):
     """Doe een query op de database."""
 
-    if not is_date_matching(start_datum):
-        exit(f'\nStartdatum {start_datum} is niet de juiste datumnotatie (jjjj-mm-dd). Programma wordt afgebroken.\n')
+    for k, datum in {'Start': start_datum, 'Stop': stop_datum}.items():
+        if not is_date_matching(datum):
+            msg = f'\n{k}datum {datum} is niet de juiste datumnotatie.'
+            msg += f' (jjjj-mm-dd). Programma wordt afgebroken.\n'
+            exit(msg)
 
-    if not is_date_matching(stop_datum):
-        exit(f'\nStopdatum {stop_datum} is niet de juiste datumnotatie (jjjj-mm-dd). Programma wordt afgebroken.\n')
-
+    sql_conditions += [
+        {'col': 'recording_timestamp', 'op': '>', 'val': start_datum},
+        {'col': 'recording_timestamp', 'op': '<', 'val': stop_datum},
+    ]
+    sql_args = {
+        'columns': columns,
+        'datastore': datastore,
+        'conditions': sql_conditions,
+        'parameters': sql_parameters,
+        }
     headers = {'X-CKAN-API-Key': api_key}
-
-    params = {
-        'resource_id': '4cfb5177-d3db-4efc-ac6f-351af75f9f92',
-        'sql': f'SELECT {columns} from "provincie_utrecht_snuffelfiets_measurement_rydruofi"'\
-                + f' WHERE "recording_timestamp" > \'{start_datum}\' AND "recording_timestamp" < \'{stop_datum}\'',
-        'offset': 0,
-        'limit': 9999999,
-    }
-
-    print(f'url= {url}')
-    print(f'sql-statement= {params["sql"]}')
+    params = {'resource_id': resource_id, 'sql': build_sql_statement(**sql_args)}
+    print(f'sql statement: {params["sql"]}')
 
     start_time = time.time()
-    response = requests.get(url, headers=headers, params=params)
 
-    if response.status_code != 200:
-        exit(f'api-call mislukt: foutcode= {response.status_code}; {response.text}\n')
+    records = get_records(url, headers, params, sql_parameters['limit'])
 
-    jfile = json.loads(response.text)
-    df = pd.DataFrame(jfile['result']['records'])
-
+    df = pd.DataFrame(records)
     df = drop_columns(df)
     df = convert_to_int(df)
 
