@@ -14,7 +14,7 @@ from sys import argv, exit
 from datetime import datetime
 from pathlib import Path
 
-from . import opschonen
+from . import opschonen, analyse
 
 
 def is_date_matching(date_str):
@@ -160,7 +160,7 @@ def convert_to_int(df, columns=['entity_id', 'version_major', 'version_minor', '
     return df
 
 
-def monthly_csv_dump(api_key, year, month, data_directory='.', prefix='api_gegevens'):
+def monthly_csv_dump(api_key, year, month, data_directory='.', prefix='api_gegevens', preproc=True):
     """Save a month of data as CSV."""
 
     start_datum = f'{year}-{month:02d}-01'
@@ -172,6 +172,14 @@ def monthly_csv_dump(api_key, year, month, data_directory='.', prefix='api_gegev
     filename = f'{prefix}_{year}-{month:02d}.csv'
     p = Path(data_directory, filename)
     df.to_csv(p, index=False)
+
+    if preproc:
+        df = analyse.MCU_preprocessing(df)
+
+        prefix = 'mcu_gegevens'
+        filename = f'{prefix}_{year}-{month:02d}.csv'
+        p = Path(data_directory, filename)
+        df.to_csv(p, index=False)
 
 
 if __name__ == '__main__':

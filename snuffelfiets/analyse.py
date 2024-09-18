@@ -13,6 +13,8 @@ from geopy.distance import geodesic as gd
 
 import knmi
 
+from . import opschonen
+
 
 def aantal_fietsers(df):
     """Bereken het aantal fietsers."""
@@ -330,5 +332,33 @@ def import_knmi_data(dt_min='', dt_max='', interval='dag', stations=[260], varia
         df = knmi.get_day_data_dataframe(stations, dt_min, dt_max, False, variables)
     else:
         df = knmi.get_hour_data_dataframe(stations, dt_min, dt_max, False, variables)
+
+    return df
+
+
+def MCU_preprocessing(
+    df,
+    error_code_selection=[],
+    rit_splitter_interval=1800,  # s
+    ritfilters=dict(
+        min_measurements=2,     # #
+        max_duration=360,       # minutes
+        max_distance=200,       # kilometers
+        min_average_speed=1,    # km/h
+        max_average_speed=35,   # km/h
+        ),
+    ):
+    """Perform standard MCU preprocessing steps."""
+
+    # data processing settings
+
+    # Drop the errors.
+    df = opschonen.verwijder_errors(df, error_codes=error_code_selection)
+    # Convert timestamps to datetime objects and add dt columns.
+    df = bewerk_timestamp(df, split=True)
+    # Split measuremnts into rides and add cycle stat columns.
+    df = split_in_ritten(df, t_seconden=rit_splitter_interval)
+    # Filter the rides.
+    df = filter_ritten(df, **ritfilters)
 
     return df
