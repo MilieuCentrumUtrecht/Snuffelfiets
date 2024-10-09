@@ -107,14 +107,16 @@ def call_api(
             msg += f' (jjjj-mm-dd). Programma wordt afgebroken.\n'
             exit(msg)
 
-    sql_conditions += [
+    sql_conditions_dates = [
         {'col': 'recording_timestamp', 'op': '>', 'val': start_datum},
         {'col': 'recording_timestamp', 'op': '<', 'val': stop_datum},
     ]
+    sql_conditions_all = sql_conditions + sql_conditions_dates
+
     sql_args = {
         'columns': columns,
         'datastore': datastore,
-        'conditions': sql_conditions,
+        'conditions': sql_conditions_all,
         'parameters': sql_parameters,
         }
     headers = {'X-CKAN-API-Key': api_key}
