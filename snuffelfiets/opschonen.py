@@ -13,63 +13,69 @@ import numpy as np
 # https://ckan-dataplatform-nl.dataplatform.nl/dataset/near-real-time-onbewerkte-snuffelfiets-gegevens-provincie-utrecht
 
 CORRECTIE_DEFAULTS = {
-    'temperature': {
-        'factor': 0.10,
+    "temperature": {
+        "factor": 0.10,
+    },
+    "pressure": {
+        "factor": 100.0,
+    },
+    "voltage": {
+        "factor": 0.10,
+        "offset": 3,
+    },
+    "pm1_0": {
+        "factor": 0.01,
+        "conditie": {
+            "col": "version_major",
+            "fun": np.greater_equal,
+            "val": 2,
         },
-    'pressure': {
-        'factor': 100.,
+    },
+    "pm2_5": {
+        "factor": 0.01,
+        "conditie": {
+            "col": "version_major",
+            "fun": np.greater_equal,
+            "val": 2,
         },
-    'voltage': {
-        'factor': 0.10,
-        'offset': 3,
+    },
+    "pm10": {
+        "factor": 0.01,
+        "conditie": {
+            "col": "version_major",
+            "fun": np.greater_equal,
+            "val": 2,
         },
-    'pm1_0': {
-        'factor': 0.01,
-        'conditie': {
-            'col': 'version_major',
-            'fun': np.greater_equal,
-            'val': 2,
-            },
-        },
-    'pm2_5': {
-        'factor': 0.01,
-        'conditie': {
-            'col': 'version_major',
-            'fun': np.greater_equal,
-            'val': 2,
-            },
-        },
-    'pm10' : {
-        'factor': 0.01,
-        'conditie': {
-            'col': 'version_major',
-            'fun': np.greater_equal,
-            'val': 2,
-            },
-        },
+    },
 }
 
 
 # https://ckan.dataplatform.nl/dataset/snuffelfiets-extra-informatie-snifferbike-additional-info
 
 ERROR_DESCRIPTIONS = {
-    0: ['No Error', 'No Error'],
-    1: ['ACCELEROMETER ERROR 1: Sensor Not Found', 'Critical Error'],
-    2: ['Reserved', ''],
-    4: ['BME ERROR 1: Sensor Not Found', 'Critical Error'],
-    8: ['BME ERROR 2: Failed to begin reading', 'Critical Error'],
-    16: ['GPS ERROR 1: Sensor Not Found', 'Critical Error'],
-    32: ['GPS ERROR 2: No GPS Fix', 'Allowed Error, device maybe indoors'],
-    64: ['Reserved', ''],
-    128: ['NO2 ERROR 1: Sensor Not Found', 'Should never be seen, NO2 removed in software.'],
-    256: ['Reserved', ''],
-    512: ['PM ERROR 1: Sensor Not Found', 'Critical Error'],
-    1024: ['PM ERROR 2a: Measurement Start Failure', 'Critical Error'],
-    2048: ['PM ERROR 2b: Measurement Read Failure', 'Allowed Error, PM sensors nt ready. Wait 5 more measurements.'],
-    4096: ['PM ERROR 2c: Measurement Accuracy Uncertain', 'Critical Error'],
-    8192: ['Reserved', ''],
-    16384: ['Reserved', ''],
-    32768: ['Reserved', ''],
+    0: ["No Error", "No Error"],
+    1: ["ACCELEROMETER ERROR 1: Sensor Not Found", "Critical Error"],
+    2: ["Reserved", ""],
+    4: ["BME ERROR 1: Sensor Not Found", "Critical Error"],
+    8: ["BME ERROR 2: Failed to begin reading", "Critical Error"],
+    16: ["GPS ERROR 1: Sensor Not Found", "Critical Error"],
+    32: ["GPS ERROR 2: No GPS Fix", "Allowed Error, device maybe indoors"],
+    64: ["Reserved", ""],
+    128: [
+        "NO2 ERROR 1: Sensor Not Found",
+        "Should never be seen, NO2 removed in software.",
+    ],
+    256: ["Reserved", ""],
+    512: ["PM ERROR 1: Sensor Not Found", "Critical Error"],
+    1024: ["PM ERROR 2a: Measurement Start Failure", "Critical Error"],
+    2048: [
+        "PM ERROR 2b: Measurement Read Failure",
+        "Allowed Error, PM sensors nt ready. Wait 5 more measurements.",
+    ],
+    4096: ["PM ERROR 2c: Measurement Accuracy Uncertain", "Critical Error"],
+    8192: ["Reserved", ""],
+    16384: ["Reserved", ""],
+    32768: ["Reserved", ""],
 }
 
 
@@ -79,31 +85,31 @@ def correct_units(df, correcties=CORRECTIE_DEFAULTS):
     for col, correctie in correcties.items():
 
         # doe niets als item niet gespecificeerd
-        default = {'factor': 1.0, 'offset': 0, 'conditie': None}
+        default = {"factor": 1.0, "offset": 0, "conditie": None}
         corr = {**default, **correctie}
 
-        print(f'Correcting column {col:12} using {correctie}')
+        print(f"Correcting column {col:12} using {correctie}")
 
         mask = _get_mask(df, col, corr)
 
-        df[col] = np.where(mask, corr['offset'] + df[col] * corr['factor'], df[col])
+        df[col] = np.where(mask, corr["offset"] + df[col] * corr["factor"], df[col])
 
     return df
 
 
 def _get_mask(df, col, corr):
     """Maak een conditie masker.
-     
+
     om te kiezen tussen geconverteerde en originele data.
     """
 
-    mask = np.zeros_like(df[col], dtype='bool')
+    mask = np.zeros_like(df[col], dtype="bool")
 
-    if corr['conditie'] is not None:
+    if corr["conditie"] is not None:
 
-        fun_conditie = corr['conditie']['fun']
-        col_conditie = corr['conditie']['col']
-        val_conditie = corr['conditie']['val']
+        fun_conditie = corr["conditie"]["fun"]
+        col_conditie = corr["conditie"]["col"]
+        val_conditie = corr["conditie"]["val"]
 
         mask = fun_conditie(df[col_conditie], val_conditie)
 
@@ -113,21 +119,21 @@ def _get_mask(df, col, corr):
 def analyse_errors(df):
     """Print a short error breakdown."""
 
-    error_codes = np.unique(df['error_code'])
+    error_codes = np.unique(df["error_code"])
 
     for error_code in error_codes:
 
-        N = len(df[df['error_code']==error_code])
+        N = len(df[df["error_code"] == error_code])
 
-        print(f'code {error_code:10}: count {N:15}')
+        print(f"code {error_code:10}: count {N:15}")
 
         compound = split_error_code(error_code)
 
         for ec in compound:
             descr = ERROR_DESCRIPTIONS[ec]
-            d = ' '
-            print(f'{ec:15}: {d:22} type       : {descr[1]}')
-            print(f'{ec:15}: {d:22} description: {descr[0]}')
+            d = " "
+            print(f"{ec:15}: {d:22} type       : {descr[1]}")
+            print(f"{ec:15}: {d:22} description: {descr[0]}")
 
 
 def split_error_code(error_code):
@@ -158,16 +164,16 @@ def verwijder_errors(df, error_codes=[], print_breakdown=False):
     BME ERROR 2: Failed to begin reading        8       Critical Error
     GPS ERROR 1: Sensor Not Found               16      Critical Error
     GPS ERROR 2: No GPS Fix                     32      "Allowed Error, device maybe indoors"
-    Reserved                                    64      
+    Reserved                                    64
     NO2 ERROR 1: Sensor Not Found               128     "Should never be seen, NO2 removed in software."
-    Reserved                                    256     
+    Reserved                                    256
     PM ERROR 1: Sensor Not Found                512     Critical Error
     PM ERROR 2a: Measurement Start Failure      1024    Critical Error
     PM ERROR 2b: Measurement Read Failure       2048    "Allowed Error, PM sensors not ready. Wait 5 more measurements."
     PM ERROR 2c: Measurement Accuracy Uncertain 4096    Critical Error
-    Reserved                                    8192    
-    Reserved                                    16384   
-    Reserved                                    32768   
+    Reserved                                    8192
+    Reserved                                    16384
+    Reserved                                    32768
     """
 
     if print_breakdown:
@@ -176,17 +182,19 @@ def verwijder_errors(df, error_codes=[], print_breakdown=False):
     if error_codes == []:
         error_codes = set(np.unique(df.error_code)) - set([0])
 
-    mask = np.zeros_like(df.error_code, dtype='bool')
+    mask = np.zeros_like(df.error_code, dtype="bool")
     for error_code in error_codes:
-        emask = df['error_code'] == error_code
-        print(f'Removing {np.sum(emask):15} measurements with error_code {error_code:15}')
+        emask = df["error_code"] == error_code
+        print(
+            f"Removing {np.sum(emask):15} measurements with error_code {error_code:15}"
+        )
         mask |= emask
 
     df = df[~mask]
 
-    print(f'')
-    print(f'Error codes remaining: {np.unique(df.error_code)}')
-    print(f'Measurements remaining: {df.shape[0]}.')
+    print(f"")
+    print(f"Error codes remaining: {np.unique(df.error_code)}")
+    print(f"Measurements remaining: {df.shape[0]}.")
 
     return df
 
@@ -243,13 +251,13 @@ def filter_by_range(df, filters):
 
 def filter_lat_lon(df, latlon={}):
 
-    coord_query = ''
+    coord_query = ""
     for col, q in latlon.items():
         coord_query += f"{col} >= {q['center'] - q['extent']}"
-        coord_query += ' & '
+        coord_query += " & "
         coord_query += f"{col} < {q['center'] + q['extent']}"
-        coord_query += ' & '
-    coord_query = coord_query.strip(' & ')
+        coord_query += " & "
+    coord_query = coord_query.strip(" & ")
 
     df = filter_rows(df, filters=coord_query)
 
