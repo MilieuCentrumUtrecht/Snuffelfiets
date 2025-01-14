@@ -16,6 +16,33 @@ import plotly.express as px
 from plotly.colors import hex_to_rgb
 
 
+def scatter_mapbox(df, plot_args={}, layout_args={}):
+    """Maak een scatter plot on the map."""
+
+    plot_args_defaults = dict(
+        data_frame=df,
+        lat="latitude",
+        lon="longitude",
+        color="pm2_5",
+        center=dict(lat=52.090695, lon=5.121314),
+        zoom=10,
+        animation_frame=None,
+    )
+
+    layout_args_defaults = dict(
+        mapbox_style="carto-positron",
+        margin=dict(b=0, t=0, l=0, r=0),
+    )
+
+    plot_args = {**plot_args_defaults, **plot_args}
+    layout_args = {**layout_args_defaults, **layout_args}
+
+    fig = px.scatter_mapbox(**plot_args)
+    fig.update_layout(**layout_args)
+
+    return fig
+
+
 def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
     """Maak een hexbin plot."""
 
