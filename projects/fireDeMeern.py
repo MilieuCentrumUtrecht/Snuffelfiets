@@ -7,20 +7,40 @@
 
 # Imports and convenience functions.
 
+import calendar
+from datetime import datetime
+from itertools import product
 from pathlib import Path
 from PIL import Image, ImageDraw
 
-import numpy as np
-import pandas as pd
-
-from snuffelfiets import inlezen, opschonen, analyse, plotting
-import plotly.graph_objects as go
+from knmi.metadata import variables as knmi_variables
+from knmi.knmi import winddir_mapping
+import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
 from matplotlib.axes import Axes
 from matplotlib.gridspec import GridSpec
 from matplotlib.transforms import Transform
-import matplotlib.pyplot as plt
 from matplotlib.markers import MarkerStyle
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+
+# from snuffelfiets import inlezen, opschonen, analyse, plotting
+from snuffelfiets.plotting import (
+    scatter_mapbox,
+    discrete_colorscale,
+    download_borders_utrecht,
+    get_borders_utrecht,
+)
+from snuffelfiets.inlezen import call_api
+from snuffelfiets.opschonen import correct_units
+from snuffelfiets.analyse import (
+    haversine,
+    calculate_distance_to_point,
+    bewerk_timestamp,
+    import_knmi_data,
+)
+from IPython import embed
 
 
 def get_period_info(period_spec, year, quarter, month):
@@ -76,10 +96,10 @@ def get_layers(data_directory):
     """Import Utrecht province and township polygons"""
 
     # Download the polygons.
-    filepaths = plotting.download_borders_utrecht(data_directory)
+    filepaths = download_borders_utrecht(data_directory)
 
     # Extract the relevant polygons.
-    provincies, gemeenten = plotting.get_borders_utrecht(data_directory, *filepaths)
+    provincies, gemeenten = get_borders_utrecht(data_directory, *filepaths)
 
     # Enter into dictionary in the mapbox_layers format.
     mapbox_layers = [
@@ -263,10 +283,6 @@ def add_marker(fig, lat, lon, text):
     )
 
 
-from PIL import Image
-from itertools import product
-
-
 def tile(file_path, dir_out, width, height, debug=1):
     img = Image.open(file_path)
     img1 = ImageDraw.Draw(img)
@@ -328,8 +344,6 @@ def cut_weather_figure(file_path):
     return icons
 
 
-from IPython import embed
-
 # weather_image_path = Path("C:/Users/karel/Downloads/kindle_weather_display_icons.png")
 # cut_weather_figure(weather_image_path)
 # API settings.
@@ -375,7 +389,7 @@ mapbox_extent = 1  # de breedte rondom de mapbox_center [deg lat/lon]; datapunte
 hexagon_size = 0.010  # de grootte van de hexagons in de hexbin plot
 hexbin_args = {
     "agg_func": np.nanmean,
-    "color_continuous_scale": plotting.discrete_colorscale(),
+    "color_continuous_scale": discrete_colorscale(),
     "range_color": [0, threshold_pm2_5],
     "min_count": 2,
     "animation_frame": None,
@@ -403,7 +417,7 @@ scatter_args = {
         "rit_id",
     ],
     "range_color": [0, 100],
-    "color_continuous_scale": plotting.discrete_colorscale(),
+    "color_continuous_scale": discrete_colorscale(),
     "zoom": 10,
 }
 # Directories.
@@ -416,7 +430,6 @@ print(f"Analysing {period_spec} {period_id}; writing output to {output_directory
 
 # print(f"Read {df.shape[0]} measurements.")
 
-from snuffelfiets.analyse import haversine
 
 # We need "similar days"
 # We can base this on KMNI data
@@ -427,13 +440,9 @@ fire_year = 2024  # The year of the Snbuffelfiets data
 fire_month = 9  # The month of the Snbuffelfiets data: 1, 2, 3, ..., 10, 11, 12
 fire_day = 6
 
-from datetime import datetime
-import datetime
-
 # Get Snuffelfiets sensor data around the fire date
-start_date = datetime.datetime(2024, 9, fire_day - 2).strftime("%Y-%m-%d")
-end_date = datetime.datetime(2024, 9, fire_day + 2).strftime("%Y-%m-%d")
-from snuffelfiets.inlezen import call_api
+start_date = datetime(2024, 9, fire_day - 2).strftime("%Y-%m-%d")
+end_date = datetime(2024, 9, fire_day + 2).strftime("%Y-%m-%d")
 
 # df = call_api(api_key, start_date, end_date)
 
@@ -468,17 +477,15 @@ for d in days:
 
     dfs.append(df)
 dfd = pd.concat(dfs, ignore_index=True)
-from snuffelfiets.opschonen import correct_units
 
 assert dfd.duplicated().sum() == 0
 # Get KNMI weather data around the fire date
-import calendar
 
 lastday = calendar.monthrange(year, months[-1])[1]
 dt_min = f"{year}-{9}-{fire_day-2} 00:00:00"
 dt_max = f"{year}-{9}-{fire_day+2} 23:59:59"
-dt_min2 = datetime.datetime(2024, 9, fire_day)
-dt_max2 = datetime.datetime(2024, 9, fire_day, 23, 59)
+dt_min2 = datetime(2024, 9, fire_day)
+dt_max2 = datetime(2024, 9, fire_day, 23, 59)
 
 variables = {
     "RH": "Etmaalsom van de neerslag [mm]",
@@ -502,11 +509,11 @@ variables2 = {
 }
 
 # Import the weather data.
-dfr = analyse.import_knmi_data(
+dfr = import_knmi_data(
     dt_min, dt_max, interval="dag", stations=[260], variables=variables.keys()
 )  # Get weather data from Utrecht weather station
 
-dfrd = analyse.import_knmi_data(
+dfrd = import_knmi_data(
     dt_min=dt_min2,
     dt_max=dt_max2,
     interval="hour",
@@ -542,7 +549,6 @@ dfrd = analyse.import_knmi_data(
 # Y: IJsvorming 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
 # HH.1: Hour
 # YYYMMDD.1: date
-from knmi.metadata import variables as knmi_variables
 
 
 # FH: Uurgemiddelde windsnelheid (in 0.1 m/s).
@@ -562,7 +568,6 @@ def plot_hourly(df):
     df = df.drop(["HH.1", "YYYYMMDD.1"], axis="columns")
     # fig = plt.figure(layout="constrained")
     # gs = GridSpec(3, len(dfs), figure=fig)
-    from knmi.knmi import winddir_mapping
 
     # inv_winddir = {v: k for k, v in winddir_mapping.items()}
     boundaries = np.concat((np.arange(0, 382.5, 22.5), [990]))
@@ -656,7 +661,6 @@ b = {
     "O": [51.954780, 5.627990],
     "W": [52.226808, 4.794457],
 }
-from snuffelfiets.analyse import haversine, calculate_distance_to_point
 
 distance2 = calculate_distance_to_point(
     dfd["latitude"].iloc[0],
@@ -670,20 +674,18 @@ dfd["distance"] = dfd[["latitude", "longitude"]].apply(
     / 1000,
     axis="columns",
 )  # km
-from snuffelfiets.analyse import bewerk_timestamp
 
 dfd = bewerk_timestamp(dfd)
 dfd["distance_rit_mean"] = dfd.groupby("rit_id")["distance"].transform("mean")
 
 # 1 - 80 km from fire
 fire_date_filter = (
-    dfd["date_time"] < datetime.datetime(fire_year, fire_month, fire_day + 1)
-) & (dfd["date_time"] > datetime.datetime(fire_year, fire_month, fire_day))
-import matplotlib.pyplot as plt
+    dfd["date_time"] < datetime(fire_year, fire_month, fire_day + 1)
+) & (dfd["date_time"] > datetime(fire_year, fire_month, fire_day))
 
 day_after_filter = (
-    dfd["date_time"] < datetime.datetime(fire_year, fire_month, fire_day + 2)
-) & (dfd["date_time"] > datetime.datetime(fire_year, fire_month, fire_day + 1))
+    dfd["date_time"] < datetime(fire_year, fire_month, fire_day + 2)
+) & (dfd["date_time"] > datetime(fire_year, fire_month, fire_day + 1))
 
 dff = dfd[fire_date_filter]
 dfn = dfd[~fire_date_filter]
@@ -700,7 +702,7 @@ output_types = ["png"]
 # output_types = []
 
 
-fig = plotting.scatter_mapbox(
+fig = scatter_mapbox(
     fire_closest_route,
     plot_args=scatter_args,
 )
@@ -710,7 +712,7 @@ if "browser" in output_types:
 if "png" in output_types:
     fig.write_image(output_directory / "fire_michiel_route.png")
 
-fig = plotting.scatter_mapbox(
+fig = scatter_mapbox(
     dfd,
     plot_args=scatter_args,
 )
@@ -720,7 +722,7 @@ if "browser" in output_types:
 if "png" in output_types:
     fig.write_image(output_directory / f"day_after_routes.png")
 
-fig = plotting.scatter_mapbox(
+fig = scatter_mapbox(
     dff,
     plot_args=scatter_args,
 )
@@ -731,7 +733,7 @@ if "browser" in output_types:
 if "png" in output_types:
     fig.write_image(output_directory / f"fire_day_routes.png")
 
-fig = plotting.scatter_mapbox(
+fig = scatter_mapbox(
     dfn,
     plot_args=scatter_args,
 )
@@ -744,8 +746,4 @@ if "png" in output_types:
 y_metric = "pm2_5"
 
 create_overview_plot([fire_closest_route, route_interesting])
-# plt.show()
 print("end")
-import IPython
-
-# IPython.embed()
