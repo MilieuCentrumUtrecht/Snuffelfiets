@@ -21,3 +21,5 @@ dependencies:
     - kaleido
     - knmi-py
   - sphinx
+  - flake8
+  - pylint
