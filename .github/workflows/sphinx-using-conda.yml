@@ -53,7 +53,7 @@ jobs:
       uses: actions/upload-pages-artifact@v3
       with:
         # Upload entire HTML pages folder
-        path: './build/html/**/*.*'
+        path: build/html/
   deploy:
     environment:
       name: github-pages
