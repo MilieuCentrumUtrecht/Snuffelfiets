@@ -12,6 +12,7 @@ from datetime import datetime
 from itertools import product
 from pathlib import Path
 from PIL import Image, ImageDraw
+import os
 
 from knmi.metadata import variables as knmi_variables
 from knmi.knmi import winddir_mapping
@@ -347,7 +348,7 @@ def cut_weather_figure(file_path):
 # weather_image_path = Path("C:/Users/karel/Downloads/kindle_weather_display_icons.png")
 # cut_weather_figure(weather_image_path)
 # API settings.
-api_key = ""  # de API key
+api_key = os.environ["CIVITY_CKAN_API_KEY"]
 
 # File system settings.
 prefix = "api_gegevens"  # de prefix voor de csv-datafiles; default format <prefix>_<yyyy>_<mm>.csv
