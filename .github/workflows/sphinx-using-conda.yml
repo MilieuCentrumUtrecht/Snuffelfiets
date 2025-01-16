@@ -20,6 +20,8 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
@@ -46,3 +48,11 @@ jobs:
       run: |
         conda install sphinx
         make html
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        # Upload entire HTML pages folder
+        path: './build/html/'
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
