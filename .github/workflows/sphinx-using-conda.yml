@@ -2,9 +2,9 @@ name: Sphinx using Conda
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "CI", "ci", "docs" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "CI", "ci", "docs" ]
 
 jobs:
   build-linux:
