@@ -1,4 +1,4 @@
-name: Snuffelfiets using Conda
+name: Package with Conda
 
 on: [push]
 
