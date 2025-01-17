@@ -1,4 +1,4 @@
-name: Package with Conda
+name: 🐍 Package 📦 with Conda and PyPI
 
 on: [push]
 
@@ -35,3 +35,26 @@ jobs:
         conda install pytest
         conda develop .
         pytest
+  publish-to-testpypi:
+    name: Publish Python 🐍 distribution 📦 to TestPyPI
+    needs:
+    - build-linux
+    runs-on: ubuntu-latest
+
+    environment:
+      name: default
+      url: https://test.pypi.org/p/snuffelfiets
+
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Publish distribution 📦 to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
