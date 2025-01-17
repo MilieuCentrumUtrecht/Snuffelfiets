@@ -1,0 +1,31 @@
+[build-system]
+# Minimum requirements to read pyproject.toml with versioneer
+requires = ["setuptools>=45", "wheel", "versioneer[toml]"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snuffelfiets"
+authors = [
+    { name = "MCU developers", email = "info@mcu.nl" },
+    { name = "MCU dataclub developers", email = "dataclub@mcu.nl" },
+    { name = "Karel Lucas van de Plassche", email = "karelvandeplassche@gmail.com" },
+    { name = "Michiel Kleinnijenhuis", email = "michiel.kl@gmail.com" },
+]
+description = "Rapporting and analysis scripts for the Milieucentrum Utrecht Snuffelfiets project"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.9"
+classifiers = [
+]
+dynamic = ["version"]
+
+[project.urls]
+homepage = "https://qualikiz.com"
+documentation = "https://qualikiz-group.gitlab.io/qualikiz-pythontools"
+repository = "https://gitlab.com/QuaLiKiz-group/QuaLiKiz-pythontools"
+issues = "https://gitlab.com/qualikiz-group/QuaLiKiz-pythontools/-/issues"
+
+[tool.setuptools]
+include-package-data = true # Include files specified by MANIFEST.in
+
+[tool.versioneer]
+# Empty for now
