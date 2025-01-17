@@ -34,7 +34,7 @@ jobs:
       run: |
         conda install pytest
         conda develop .
-        pytest
+        pytest .
     - name: Install pypa/build
       run: >-
         python3 -m
