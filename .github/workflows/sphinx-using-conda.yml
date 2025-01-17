@@ -42,7 +42,7 @@ jobs:
     - name: Test with pytest
       run: |
         conda install pytest
-        conda develop .
+        pip install -e .
         pytest
     - name: Build docs with Sphinx
       run: |
