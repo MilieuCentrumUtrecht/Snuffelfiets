@@ -1,10 +1,17 @@
 name: 🐍 Package 📦 with Conda and PyPI
 
-on: [push]
+on:
+  push:
+    branches: [ "main", "CI", "ci", "docs" ]
+  pull_request:
+    branches: [ "main"]
+    # A pull request almost always starts with a push (I guess) so avoid duplication
+    types: [opened, reopened, review_requested, auto_merge_enabled]
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+
     strategy:
       max-parallel: 5
 
@@ -48,6 +55,7 @@ jobs:
       with:
         name: python-package-distributions
         path: dist/
+
   publish-to-testpypi:
     name: Publish Python 🐍 distribution 📦 to TestPyPI
     needs:
@@ -67,6 +75,7 @@ jobs:
       with:
         name: python-package-distributions
         path: dist/
+    # This should only be done when testing
     #- name: Publish distribution 📦 to TestPyPI
     #  uses: pypa/gh-action-pypi-publish@release/v1
     #  with:

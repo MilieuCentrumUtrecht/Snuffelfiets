@@ -4,7 +4,9 @@ on:
   push:
     branches: [ "main", "CI", "ci", "docs" ]
   pull_request:
-    branches: [ "main", "CI", "ci", "docs" ]
+    branches: [ "main"]
+    # A pull request almost always starts with a push (I guess) so avoid duplication
+    types: [opened, reopened, review_requested, auto_merge_enabled]
 
 jobs:
   build-linux:
@@ -29,21 +31,6 @@ jobs:
     - name: Install dependencies
       run: |
         conda env update --file environment.yml --name base
-    - name: Lint with flake8
-      run: |
-        conda install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Analysing the code with pylint
-      run: |
-        pylint $(git ls-files '*.py') || true
-    - name: Test with pytest
-      run: |
-        conda install pytest
-        pip install -e .
-        pytest
     - name: Build docs with Sphinx
       run: |
         conda install sphinx

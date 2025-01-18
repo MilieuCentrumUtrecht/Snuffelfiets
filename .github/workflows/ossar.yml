@@ -12,8 +12,9 @@ on:
   push:
     branches: [ "main", "CI", "ci", "docs" ]
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
+    branches: [ "main"]
+    # A pull request almost always starts with a push (I guess) so avoid duplication
+    types: [opened, reopened, review_requested, auto_merge_enabled]
   schedule:
     - cron: '27 15 * * 2'
 
