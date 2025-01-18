@@ -21,9 +21,9 @@ dependencies:
     - kaleido
     - knmi-py
   - sphinx
-  - sphinx_autosummary_accessors
-  - sphinx_immaterial
-  - sphinx_click
+  - sphinx-autosummary-accessors
+  - sphinx-immaterial
+  - sphinx-click
   - flake8
   - pylint
   - versioneer
