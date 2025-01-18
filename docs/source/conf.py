@@ -118,6 +118,7 @@ today_fmt = "%Y-%m-%d"
 
 
 # -- Options for HTML output -------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
@@ -131,9 +132,9 @@ html_theme = "sphinx_immaterial"
 html_theme_options = {
     "repo_url": repository_url,
     "repo_name": PROJECT,
-    "icon": {
-        # "repo": "fontawesome/brands/bitbucket",
-    },
+    # "icon": {
+    # "repo": "fontawesome/brands/bitbucket",
+    # },
     "features": [
         # "navigation.expand",
         # "navigation.tabs",
@@ -255,7 +256,6 @@ html_last_updated_fmt = today_fmt
 # Output file base name for HTML help builder.
 htmlhelp_basename = f"{PACKAGE}_doc"
 
-
 # -- Extension configuration -------------------------------------------------
 # Configuration of sphinx.ext.autodoc
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
@@ -353,10 +353,3 @@ def setup(app):
     app.connect("sphinx-click-process-arguments", sphinx_click_process_arguments)
     app.connect("sphinx-click-process-description", sphinx_click_process_description)
     app.connect("sphinx-click-process-usage", sphinx_click_process_usage)
-
-
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
-html_theme = "alabaster"
-html_static_path = ["_static"]
