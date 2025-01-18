@@ -3,15 +3,29 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+==========================
 Snuffelfiets documentation
 ==========================
+
+Rapportage en analyse scripts voor het Milieucentrum Utrecht Snuffelfiets project.
 
 Add your content using ``reStructuredText`` syntax. See the
 `reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
 documentation for details.
 
-
+Manual
+------
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
+
+   self
+
+
+.. toctree::
+   :caption: API docs
+   :maxdepth: 1
+
+   api
+   api-hidden
