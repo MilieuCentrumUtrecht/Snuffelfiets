@@ -34,13 +34,13 @@ jobs:
     - name: Build docs with Sphinx
       run: |
         conda install sphinx
-        make html
+        make -C docs html
     - name: Upload artifact
       id: deployment-1
       uses: actions/upload-pages-artifact@v3
       with:
         # Upload entire HTML pages folder
-        path: build/html/
+        path: docs/build/html/
   deploy:
     permissions:
       contents: read
