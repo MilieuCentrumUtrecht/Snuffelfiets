@@ -34,7 +34,7 @@ jobs:
     - name: Build docs with Sphinx
       run: |
         conda install sphinx
-        conda develop .
+        python setup.py develop
         make -C docs html
     - name: Upload artifact
       id: deployment-1
