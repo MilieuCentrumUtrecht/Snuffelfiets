@@ -1,6 +1,6 @@
 [build-system]
 # Minimum requirements to read pyproject.toml with versioneer
-requires = ["setuptools>=45", "wheel", "versioneer[toml]"]
+requires = ["setuptools>=45", "wheel", "tomli", "versioneer[toml]"]
 build-backend = "setuptools.build_meta"
 
 [project]
