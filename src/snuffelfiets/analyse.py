@@ -328,6 +328,7 @@ def import_knmi_data(
 ):
     """Import summary weather data from the KNMI."""
 
+    df = None
     if not dt_min:
         dt_min = df["date_time"].min()
     if not dt_max:

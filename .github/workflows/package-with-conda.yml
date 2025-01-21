@@ -1,0 +1,82 @@
+name: 🐍 Package 📦 with Conda and PyPI
+
+on:
+  push:
+    branches: [ "main", "CI", "ci", "docs" ]
+  pull_request:
+    branches: [ "main"]
+    # A pull request almost always starts with a push (I guess) so avoid duplication
+    types: [opened, reopened, review_requested, auto_merge_enabled]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    strategy:
+      max-parallel: 5
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.10'
+    - name: Add conda to system path
+      run: |
+        # $CONDA is an environment variable pointing to the root of the miniconda directory
+        echo $CONDA/bin >> $GITHUB_PATH
+    - name: Install dependencies
+      run: |
+        conda install -n base --force-reinstall conda-libmamba-solver # Fix mambda solver
+        conda env update --file environment.yml --name base
+        conda config --set solver classic
+    - name: Lint with flake8
+      run: |
+        conda install flake8
+        # stop the build if there are Python syntax errors or undefined names
+        #flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with pytest
+      run: |
+        conda install pytest
+        pip install -e .
+        pytest
+    - name: Install pypa/build
+      run: >-
+        python3 -m
+        pip install
+        build
+        --user
+    - name: Build a binary wheel and a source tarball
+      run: python3 -m build
+    - name: Store the distribution packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+  publish-to-testpypi:
+    name: Publish Python 🐍 distribution 📦 to TestPyPI
+    needs:
+    - build-linux
+    runs-on: ubuntu-latest
+
+    environment:
+      name: default
+      url: https://test.pypi.org/p/snuffelfiets
+
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    # This should only be done when testing
+    #- name: Publish distribution 📦 to TestPyPI
+    #  uses: pypa/gh-action-pypi-publish@release/v1
+    #  with:
+    #    repository-url: https://test.pypi.org/legacy/

@@ -20,3 +20,10 @@ dependencies:
   - pip:
     - kaleido
     - knmi-py
+  - sphinx
+  - sphinx-autosummary-accessors
+  - sphinx-immaterial
+  - sphinx-click
+  - flake8
+  - pylint
+  - versioneer
