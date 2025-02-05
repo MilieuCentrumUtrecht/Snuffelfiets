@@ -25,6 +25,8 @@ from matplotlib.markers import MarkerStyle
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.graph_objects import Figure as PlotlyFigure
+
 
 # from snuffelfiets import inlezen, opschonen, analyse, plotting
 from snuffelfiets.plotting import (
@@ -284,6 +286,28 @@ def add_marker(fig, lat, lon, text):
     )
 
 
+def add_title(fig, text=None, df=None):
+    if text is None and df is None:
+        raise Exception
+    elif text is not None:
+        pass
+    elif df is not None:
+        text = df["recording_timestamp"].iloc[0]
+        pass
+    else:
+        raise Exception
+    fig = fig.update_layout(
+        title=go.layout.Title(
+            text=text,
+            xref="paper",
+            x=0.55,
+            yref="paper",
+            y=1,
+        )
+    )
+    return fig
+
+
 def tile(file_path, dir_out, width, height, debug=1):
     img = Image.open(file_path)
     img1 = ImageDraw.Draw(img)
@@ -343,6 +367,143 @@ def cut_weather_figure(file_path):
     for name, part in zip(grid, parts):
         icons[name] = part
     return icons
+
+
+def plot_hourly(
+    df,
+    variables=None,
+    axs=None,
+    plot_kwargs={},
+    show=False,
+    savefig=False,
+    savefig_args=[],
+    savefig_kwargs={},
+):
+    # ALL seems to be:
+    # STN, DD, FH, FF, FX, T, T10N, TD, SQ, Q, DR, RH, P, VV, N, U, WW, IX, M, R, S, O, Y, HH.1, YYYYMMDD.1
+    # DD: Windrichting (in graden) gemiddeld over de laatste 10 minuten van het afgelopen uur (360=noord, 90=oost, 180=zuid, 270=west, 0=windstil 990=veranderlijk.
+    # FH: Uurgemiddelde windsnelheid (in 0.1 m/s).
+    # FF: Windsnelheid (in 0.1 m/s) gemiddeld over de laatste 10 minuten van het afgelopen uur
+    # FX: Hoogste windstoot (in 0.1 m/s) over het afgelopen uurvak
+    # T: Temperatuur (in 0.1 graden Celsius) op 1.50 m hoogte tijdens de waarneming
+    # T10N: Minimumtemperatuur (in 0.1 graden Celsius) op 10 cm hoogte in de afgelopen 6 uur
+    # TD: Dauwpuntstemperatuur (in 0.1 graden Celsius) op 1.50 m hoogte tijdens de waarneming
+    # SQ: Duur van de zonneschijn (in 0.1 uren) per uurvak, berekend uit globale straling (-1 for <0.05 uur)
+    # Q: Globale straling (in J/cm2) per uurvak
+    # DR: Duur van de neerslag (in 0.1 uur) per uurvak
+    # RH: Uursom van de neerslag (in 0.1 mm) (-1 voor <0.05 mm)
+    # P: Luchtdruk (in 0.1 hPa) herleid naar zeeniveau, tijdens de waarneming
+    # VV: Horizontaal zicht tijdens de waarneming (0=minder dan 100m, 1=100-200m, 2=200-300m,..., 49=4900-5000m, 50=5-6km, 56=6-7km, 57=7-8km, ..., 79=29-30km, 80=30-35km, 81=35-40km,..., 89=meer dan 70km)
+    # N: Bewolking (bedekkingsgraad van de bovenlucht in achtsten), tijdens de waarneming (9=bovenlucht onzichtbaar)
+    # U: Relatieve vochtigheid (in procenten) op 1.50 m hoogte tijdens de waarneming
+    # WW: Weercode (00-99), visueel(WW) of automatisch(WaWa) waargenomen, voor het actuele weer of het weer in het afgelopen uur.
+    # IX: Weercode indicator voor de wijze van waarnemen op een bemand of automatisch station (1=bemand gebruikmakend van code uit visuele waarnemingen, 2,3=bemand en weggelaten (geen belangrijk weersverschijnsel, geen gegevens), 4=automatisch en opgenomen (gebruikmakend van code uit visuele waarnemingen), 5,6=automatisch en weggelaten (geen belangrijk weersverschijnsel, geen gegevens), 7=automatisch gebruikmakend van code uit automatische waarnemingen)
+    # M: Mist 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
+    # R: Regen 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
+    # S: Sneeuw 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
+    # O: Onweer 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
+    # Y: IJsvorming 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
+    # HH.1: Hour
+    # YYYMMDD.1: date
+
+    # FH: Uurgemiddelde windsnelheid (in 0.1 m/s).
+    # T: Temperatuur (in 0.1 graden Celsius) op 1.50 m hoogte tijdens de waarneming
+    # SQ: Duur van de zonneschijn (in 0.1 uren) per uurvak, berekend uit globale straling (-1 for <0.05 uur)
+    # P: Luchtdruk (in 0.1 hPa) herleid naar zeeniveau, tijdens de waarneming
+    if variables is None:
+        variables = ["FH", "T", "SQ", "RH", "P", "DD", "HH.1", "YYYYMMDD.1"]
+    df = df[variables]
+    angles = df.pop("DD")
+    df["Wind speed (m/s)"] = df.pop("FH") / 10
+    df["Temperature (oC)"] = df.pop("T") / 10
+    df["Sunshine (hours)"] = df.pop("SQ") / 10
+    df["Sunshine (fraction of hour)"] = df.pop("Sunshine (hours)") / 10
+    df["Precipitation (mm)"] = df.pop("RH") / 10
+    df["Pressure (bar)"] = df.pop("P") / 1e4
+    df = df.drop(["HH.1", "YYYYMMDD.1"], axis="columns")
+    # fig = plt.figure(layout="constrained")
+    # gs = GridSpec(3, len(dfs), figure=fig)
+
+    # inv_winddir = {v: k for k, v in winddir_mapping.items()}
+    boundaries = np.concat((np.arange(0, 382.5, 22.5), [990]))
+    wind_direction_map = [
+        "N",
+        "NO",
+        "NO",
+        "O",
+        "O",
+        "ZO",
+        "ZO",
+        "Z",
+        "Z",
+        "ZW",
+        "ZW",
+        "W",
+        "W",
+        "NW",
+        "NW",
+        "N",
+        "?",
+    ]
+    wind_directions = angles.copy(deep=True)
+    for left, right, wind in zip(boundaries, boundaries[1:], wind_direction_map):
+        is_this_direction = angles.between(left, right, inclusive="left")
+        wind_directions[is_this_direction] = wind
+
+    # The last index is above 360 degrees. Flip it around
+    # right = np.concat([[right[-1] - 360], right[:-1]])
+    # KNMI
+    # winddir_mapping = {
+    # 'NO': 45,
+    # 'O': 90,
+    # 'ZO': 135,
+    # 'Z': 180,
+    # 'ZW': 225,
+    # 'W': 270,
+    # 'NW': 315,
+    # 'N': 360, == 0SA
+
+    # Create the plots
+    if axs is None:
+        axs: Axes = df.plot(subplots=True, **plot_kwargs)  # , legend=False)
+    ax0, ax1, ax2, ax3, ax4 = axs
+    for ii, ax in enumerate(axs):
+        ax.set_ylabel(df.columns[ii])
+    ax0.set_title(df.index[0].date())
+    # Mark every point in wind speed with its direction
+    color = ax0.lines[0]._color
+    for xx, yy in df["Wind speed (m/s)"].items():
+        angle = angles[xx]
+        m = MarkerStyle("$\\uparrow$")
+        m._transform.rotate_deg(-angle)
+        ax0.scatter(xx, yy, marker=m, color=color, s=200)
+        ax0.text(xx, 1.1 * yy, wind_directions[xx])
+    # Turn sunshine to a bar plot
+    line = ax2.lines[0]
+    cc = line.get_color()
+    ax2.lines[0].remove()
+    ax2.legend()
+    ax2.bar(
+        df["Sunshine (fraction of hour)"].index,
+        df["Sunshine (fraction of hour)"],
+        color=cc,
+    )
+
+    line = ax3.lines[0]
+    cc = line.get_color()
+    ax3.lines[0].remove()
+    ax3.legend()
+    ax3.bar(
+        df["Precipitation (mm)"].index,
+        df["Precipitation (mm)"],
+        color=cc,
+    )
+
+    # Images from https://upload.wikimedia.org/wikipedia/commons/f/fc/Weather-symbols.png, Free to use
+    if show:
+        plt.show()
+    if savefig:
+        plt.savefig(*savefig_args, **savefig_kwargs)
 
 
 # weather_image_path = Path("C:/Users/karel/Downloads/kindle_weather_display_icons.png")
@@ -429,9 +590,6 @@ output_directory.mkdir(parents=True, exist_ok=True)
 
 print(f"Analysing {period_spec} {period_id}; writing output to {output_directory}.")
 
-# print(f"Read {df.shape[0]} measurements.")
-
-
 # We need "similar days"
 # We can base this on KMNI data
 # First, assume days around the fire are similar to the one of the fire
@@ -485,14 +643,6 @@ assert dfd.duplicated().sum() == 0
 lastday = calendar.monthrange(year, months[-1])[1]
 dt_min = f"{year}-{9}-{fire_day-2} 00:00:00"
 dt_max = f"{year}-{9}-{fire_day+2} 23:59:59"
-dt_min2 = datetime(2024, 9, fire_day)
-dt_max2 = datetime(2024, 9, fire_day, 23, 59)
-
-variables = {
-    "RH": "Etmaalsom van de neerslag [mm]",
-    "TG": "Etmaalgem van de temperatuur [grC]",
-    "FG": "Etmaalgem van de windsnelheid [m/s]",
-}
 
 # +++WIND = DDVEC:FG:FHX:FHX:FX wind
 # TEMP = TG:TN:TX:T10N temperatuur
@@ -501,158 +651,53 @@ variables = {
 # PRES = PG:PGX:PGN druk op zeeniveau
 # VICL = VVN:VVX:NG zicht en bewolking
 # MSTR = UG:UX:UN luchtvochtigheid
-variables2 = {
-    # "TEMP": "temperaturen",
-    "RH": "Etmaalsom van de neerslag [mm]",
-    "TEMP": "Temperatuur data",
-    # "FG": "Etmaalgem van de windsnelheid [m/s]",
-    "WIND": "Wind data",
+knmi_settings = {
+    "interval": "hour",
+    "stations": [260],
+    "variables": ["ALL"],
 }
-
-# Import the weather data.
-dfr = import_knmi_data(
-    dt_min, dt_max, interval="dag", stations=[260], variables=variables.keys()
+dt_min_knmi = datetime(2024, 9, fire_day - 1)
+dt_max_knmi = datetime(2024, 9, fire_day - 1, 23, 59)
+dfr_before = import_knmi_data(
+    dt_min=dt_min_knmi,
+    dt_max=dt_max_knmi,
+    **knmi_settings,
 )  # Get weather data from Utrecht weather station
 
-dfrd = import_knmi_data(
-    dt_min=dt_min2,
-    dt_max=dt_max2,
-    interval="hour",
-    stations=[260],
-    variables=["ALL"],
-    # variables=variables2.keys(),
+dt_min_knmi = datetime(2024, 9, fire_day)
+dt_max_knmi = datetime(2024, 9, fire_day, 23, 59)
+dfr_day = import_knmi_data(
+    dt_min=dt_min_knmi,
+    dt_max=dt_max_knmi,
+    **knmi_settings,
 )  # Get weather data from Utrecht weather station
 
+dt_min_knmi = datetime(2024, 9, fire_day + 1)
+dt_max_knmi = datetime(2024, 9, fire_day + 1, 23, 59)
+dfr_after = import_knmi_data(
+    dt_min=dt_min_knmi,
+    dt_max=dt_max_knmi,
+    **knmi_settings,
+)  # Get weather data from Utrecht weather station
 
-# ALL seems to be:
-# STN, DD, FH, FF, FX, T, T10N, TD, SQ, Q, DR, RH, P, VV, N, U, WW, IX, M, R, S, O, Y, HH.1, YYYYMMDD.1
-# DD: Windrichting (in graden) gemiddeld over de laatste 10 minuten van het afgelopen uur (360=noord, 90=oost, 180=zuid, 270=west, 0=windstil 990=veranderlijk.
-# FH: Uurgemiddelde windsnelheid (in 0.1 m/s).
-# FF: Windsnelheid (in 0.1 m/s) gemiddeld over de laatste 10 minuten van het afgelopen uur
-# FX: Hoogste windstoot (in 0.1 m/s) over het afgelopen uurvak
-# T: Temperatuur (in 0.1 graden Celsius) op 1.50 m hoogte tijdens de waarneming
-# T10N: Minimumtemperatuur (in 0.1 graden Celsius) op 10 cm hoogte in de afgelopen 6 uur
-# TD: Dauwpuntstemperatuur (in 0.1 graden Celsius) op 1.50 m hoogte tijdens de waarneming
-# SQ: Duur van de zonneschijn (in 0.1 uren) per uurvak, berekend uit globale straling (-1 for <0.05 uur)
-# Q: Globale straling (in J/cm2) per uurvak
-# DR: Duur van de neerslag (in 0.1 uur) per uurvak
-# RH: Uursom van de neerslag (in 0.1 mm) (-1 voor <0.05 mm)
-# P: Luchtdruk (in 0.1 hPa) herleid naar zeeniveau, tijdens de waarneming
-# VV: Horizontaal zicht tijdens de waarneming (0=minder dan 100m, 1=100-200m, 2=200-300m,..., 49=4900-5000m, 50=5-6km, 56=6-7km, 57=7-8km, ..., 79=29-30km, 80=30-35km, 81=35-40km,..., 89=meer dan 70km)
-# N: Bewolking (bedekkingsgraad van de bovenlucht in achtsten), tijdens de waarneming (9=bovenlucht onzichtbaar)
-# U: Relatieve vochtigheid (in procenten) op 1.50 m hoogte tijdens de waarneming
-# WW: Weercode (00-99), visueel(WW) of automatisch(WaWa) waargenomen, voor het actuele weer of het weer in het afgelopen uur.
-# IX: Weercode indicator voor de wijze van waarnemen op een bemand of automatisch station (1=bemand gebruikmakend van code uit visuele waarnemingen, 2,3=bemand en weggelaten (geen belangrijk weersverschijnsel, geen gegevens), 4=automatisch en opgenomen (gebruikmakend van code uit visuele waarnemingen), 5,6=automatisch en weggelaten (geen belangrijk weersverschijnsel, geen gegevens), 7=automatisch gebruikmakend van code uit automatische waarnemingen)
-# M: Mist 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
-# R: Regen 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
-# S: Sneeuw 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
-# O: Onweer 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
-# Y: IJsvorming 0=niet voorgekomen, 1=wel voorgekomen in het voorgaande uur en/of tijdens de waarneming
-# HH.1: Hour
-# YYYMMDD.1: date
-
-
-# FH: Uurgemiddelde windsnelheid (in 0.1 m/s).
-# T: Temperatuur (in 0.1 graden Celsius) op 1.50 m hoogte tijdens de waarneming
-# SQ: Duur van de zonneschijn (in 0.1 uren) per uurvak, berekend uit globale straling (-1 for <0.05 uur)
-# P: Luchtdruk (in 0.1 hPa) herleid naar zeeniveau, tijdens de waarneming
-def plot_hourly(df):
-    variables = ["FH", "T", "SQ", "RH", "P", "DD", "HH.1", "YYYYMMDD.1"]
-    df = df[variables]
-    angles = df.pop("DD")
-    df["Wind speed (m/s)"] = df.pop("FH") / 10
-    df["Temperature (oC)"] = df.pop("T") / 10
-    df["Sunshine (hours)"] = df.pop("SQ") / 10
-    df["Sunshine (fraction of hour)"] = df.pop("Sunshine (hours)") / 10
-    df["Precipitation (mm)"] = df.pop("RH") / 10
-    df["Pressure (bar)"] = df.pop("P") / 1e4
-    df = df.drop(["HH.1", "YYYYMMDD.1"], axis="columns")
-    # fig = plt.figure(layout="constrained")
-    # gs = GridSpec(3, len(dfs), figure=fig)
-
-    # inv_winddir = {v: k for k, v in winddir_mapping.items()}
-    boundaries = np.concat((np.arange(0, 382.5, 22.5), [990]))
-    wind_direction_map = [
-        "N",
-        "NO",
-        "NO",
-        "O",
-        "O",
-        "ZO",
-        "ZO",
-        "Z",
-        "Z",
-        "ZW",
-        "ZW",
-        "W",
-        "W",
-        "NW",
-        "NW",
-        "N",
-        "?",
-    ]
-    wind_directions = angles.copy(deep=True)
-    for left, right, wind in zip(boundaries, boundaries[1:], wind_direction_map):
-        is_this_direction = angles.between(left, right, inclusive="left")
-        wind_directions[is_this_direction] = wind
-
-    # The last index is above 360 degrees. Flip it around
-    # right = np.concat([[right[-1] - 360], right[:-1]])
-    # KNMI
-    # winddir_mapping = {
-    # 'NO': 45,
-    # 'O': 90,
-    # 'ZO': 135,
-    # 'Z': 180,
-    # 'ZW': 225,
-    # 'W': 270,
-    # 'NW': 315,
-    # 'N': 360, == 0SA
-
-    axs: Axes = df.plot(subplots=True)  # , legend=False)
-    ax0, ax1, ax2, ax3, ax4 = axs
-    for ii, ax in enumerate(axs):
-        ax.set_ylabel(df.columns[ii])
-    ax0.set_title(df.index[0].date())
-    # Mark every point in wind speed with its direction
-    color = ax0.lines[0]._color
-    for xx, yy in df["Wind speed (m/s)"].items():
-        angle = angles[xx]
-        m = MarkerStyle("$\\uparrow$")
-        m._transform.rotate_deg(-angle)
-        ax0.scatter(xx, yy, marker=m, color=color, s=200)
-        ax0.text(xx, 1.1 * yy, wind_directions[xx])
-    # Turn sunshine to a bar plot
-    line = ax2.lines[0]
-    cc = line.get_color()
-    ax2.lines[0].remove()
-    ax2.legend()
-    ax2.bar(
-        df["Sunshine (fraction of hour)"].index,
-        df["Sunshine (fraction of hour)"],
-        color=cc,
-    )
-
-    line = ax3.lines[0]
-    cc = line.get_color()
-    ax3.lines[0].remove()
-    ax3.legend()
-    ax3.bar(
-        df["Precipitation (mm)"].index,
-        df["Precipitation (mm)"],
-        color=cc,
-    )
-
-    # Images from https://upload.wikimedia.org/wikipedia/commons/f/fc/Weather-symbols.png, Free to use
-    # .plot(kind="baar", ax=ax2, subplots=True)
-    plt.show()
-    # ax1 = fig.add_subplot(gs[0, :])
-    # axs = [fig.add_subplot(gs[1, ii]) for ii in range(len(dfs))]
-
-    pass
-
-
-plot_hourly(dfrd)
+plot_hourly(
+    dfr_before,
+    savefig=True,
+    savefig_args=[output_directory / "knmi_weather_before.png"],
+    savefig_kwargs={},
+)
+plot_hourly(
+    dfr_day,
+    savefig=True,
+    savefig_args=[output_directory / "knmi_weather_day.png"],
+    savefig_kwargs={},
+)
+plot_hourly(
+    dfr_after,
+    savefig=True,
+    savefig_args=[output_directory / "knmi_weather_after.png"],
+    savefig_kwargs={},
+)
 # We determined the location of the fire from vru.nl and found these coordinates on Google Maps: 52°04'39.6"N 5°03'27.9"E
 # 52.077522511336845, 5.057254362375853
 center_fire = (52.077522511336845, 5.057254362375853)  # (N, E)
@@ -663,11 +708,11 @@ b = {
     "W": [52.226808, 4.794457],
 }
 
-distance2 = calculate_distance_to_point(
-    dfd["latitude"].iloc[0],
-    dfd["longitude"].iloc[0],
-    point={"lat": center_fire[0], "lon": center_fire[1]},
-)
+# distance2 = calculate_distance_to_point(
+#    dfd["latitude"].iloc[0],
+#    dfd["longitude"].iloc[0],
+#    point={"lat": center_fire[0], "lon": center_fire[1]},
+# )
 dfd["distance"] = dfd[["latitude", "longitude"]].apply(
     lambda row: calculate_distance_to_point(
         row[0], row[1], point={"lat": center_fire[0], "lon": center_fire[1]}
@@ -700,44 +745,45 @@ route_interesting = dff[dff["rit_id"] == 46]
 # browser, png, html
 output_types = ["browser", "png"]
 output_types = ["png"]
-# output_types = []
 
-
-fig = scatter_mapbox(
+fig: PlotlyFigure = scatter_mapbox(
     fire_closest_route,
     plot_args=scatter_args,
 )
+fig = add_title(fig, df=fire_closest_route)
 add_marker(fig, center_fire[0], center_fire[1], "Fire")
 if "browser" in output_types:
     fig.show()
 if "png" in output_types:
     fig.write_image(output_directory / "fire_michiel_route.png")
 
-fig = scatter_mapbox(
+fig: PlotlyFigure = scatter_mapbox(
     dfd,
     plot_args=scatter_args,
 )
+fig = add_title(fig, df=dfd)
 add_marker(fig, center_fire[0], center_fire[1], "Fire")
 if "browser" in output_types:
     fig.show()
 if "png" in output_types:
     fig.write_image(output_directory / f"day_after_routes.png")
 
-fig = scatter_mapbox(
+fig: PlotlyFigure = scatter_mapbox(
     dff,
     plot_args=scatter_args,
 )
-
+fig = add_title(fig, df=dff)
 add_marker(fig, center_fire[0], center_fire[1], "Fire")
 if "browser" in output_types:
     fig.show()
 if "png" in output_types:
     fig.write_image(output_directory / f"fire_day_routes.png")
 
-fig = scatter_mapbox(
+fig: PlotlyFigure = scatter_mapbox(
     dfn,
     plot_args=scatter_args,
 )
+fig = add_title(fig, df=dfn)
 add_marker(fig, center_fire[0], center_fire[1], "Fire")
 
 if "browser" in output_types:
