@@ -14,6 +14,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 import os
 
+import folium
+from folium.folium import Map
 from knmi.metadata import variables as knmi_variables
 from knmi.knmi import winddir_mapping
 import matplotlib.pyplot as plt
@@ -26,6 +28,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.graph_objects import Figure as PlotlyFigure
+import selenium
 
 
 # from snuffelfiets import inlezen, opschonen, analyse, plotting
@@ -272,18 +275,28 @@ def create_overview_plot(dfs, y_metric="pm2_5", x_metric="distance"):
     ax1.legend()
 
 
-def add_marker(fig, lat, lon, text):
-    fig.add_trace(
-        go.Scattermapbox(
-            lat=[lat],
-            lon=[lon],
-            mode="markers",
-            marker_size=14,
-            text=[text],
-        ),
-        1,
-        1,
-    )
+def add_marker(map, lat: float, lon: float, text: str) -> Map:
+    if isinstance(map, folium.folium.Map):
+        folium.RegularPolygonMarker(
+            [lat, lon],
+            popup=text,
+            fill_color="#00ff40",
+            number_of_sides=3,
+            radius=10,
+        ).add_to(my_map)
+    else:
+        map.add_trace(
+            go.Scattermapbox(
+                lat=[lat],
+                lon=[lon],
+                mode="markers",
+                marker_size=14,
+                text=[text],
+            ),
+            1,
+            1,
+        )
+    return map
 
 
 def add_title(fig, text=None, df=None):
@@ -793,4 +806,41 @@ if "png" in output_types:
 y_metric = "pm2_5"
 
 create_overview_plot([fire_closest_route, route_interesting])
+
+
+my_map: Map = folium.Map(location=center_fire, zoom_start=13)
+my_map = add_marker(my_map, center_fire[0], center_fire[1], "Fire")
+if "browser" in output_types:
+    my_map.show_in_browser()
+
+if "png" in output_types:
+    import os
+    import subprocess
+
+    my_map.save("tmp.html")
+    url = "file://{}/tmp.html".format(os.getcwd())
+    outfn = os.path.join(output_directory, "around_days_routes2.png")
+    try:
+        binary = "cutycapt"
+        returned = subprocess.run(
+            [binary, "--url={}".format(url), "--out={}".format(outfn)],
+            shell=True,
+            capture_output=True,
+        )
+    except (subprocess.CalledProcessError, OSError, ValueError) as e:
+        embed()
+    else:
+        assert isinstance(returned, subprocess.CompletedProcess)
+        returned.args
+        returned.stdout
+        returned.stderr
+        if returned.returncode != 0:
+            assert returned.stdout == b""
+            raise Exception(f"{binary} could not be found")
+            # raise CompletedProcess(
+            # BaseException, returncode=returned.returncode
+            # )
+
+    Path("tmp.html").unlink()
+
 print("end")
