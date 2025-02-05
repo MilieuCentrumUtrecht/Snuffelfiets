@@ -10,6 +10,7 @@
 import calendar
 from datetime import datetime
 from itertools import product
+import io
 from pathlib import Path
 from PIL import Image, ImageDraw
 import os
@@ -808,39 +809,22 @@ y_metric = "pm2_5"
 create_overview_plot([fire_closest_route, route_interesting])
 
 
-my_map: Map = folium.Map(location=center_fire, zoom_start=13)
+# See https://leaflet-extras.github.io/leaflet-providers/preview/ for tiles
+my_map: Map = folium.Map(
+    location=center_fire,
+    zoom_start=14,
+    max_zoom=18,
+    tiles="TopPlusOpen.Color",
+    attribution='Map data: &copy; <a href="http://www.govdata.de/dl-de/by-2-0">dl-de/by-2-0</a>',
+)
 my_map = add_marker(my_map, center_fire[0], center_fire[1], "Fire")
 if "browser" in output_types:
     my_map.show_in_browser()
 
 if "png" in output_types:
-    import os
-    import subprocess
-
-    my_map.save("tmp.html")
-    url = "file://{}/tmp.html".format(os.getcwd())
-    outfn = os.path.join(output_directory, "around_days_routes2.png")
-    try:
-        binary = "cutycapt"
-        returned = subprocess.run(
-            [binary, "--url={}".format(url), "--out={}".format(outfn)],
-            shell=True,
-            capture_output=True,
-        )
-    except (subprocess.CalledProcessError, OSError, ValueError) as e:
-        embed()
-    else:
-        assert isinstance(returned, subprocess.CompletedProcess)
-        returned.args
-        returned.stdout
-        returned.stderr
-        if returned.returncode != 0:
-            assert returned.stdout == b""
-            raise Exception(f"{binary} could not be found")
-            # raise CompletedProcess(
-            # BaseException, returncode=returned.returncode
-            # )
-
-    Path("tmp.html").unlink()
+    outfn = os.path.join(output_directory, "around_days_routes_alt.png")
+    img_data = my_map._to_png(delay=1)
+    img = Image.open(io.BytesIO(img_data))
+    img.save(outfn)
 
 print("end")
