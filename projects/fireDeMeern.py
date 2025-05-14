@@ -46,6 +46,7 @@ from snuffelfiets.analyse import (
     calculate_distance_to_point,
     bewerk_timestamp,
     import_knmi_data,
+    MCU_preprocessing,
 )
 from IPython import embed
 
@@ -144,14 +145,14 @@ def daily_csv_dump(
     )
     print(f"Getting {start_datum} till {stop_datum}")
     df = call_api(api_key, start_datum, stop_datum)
-    df = opschonen.correct_units(df)
+    df = correct_units(df)
 
     filename = f"{prefix}_{year}-{month:02d}-{day:02d}.csv"
     p = Path(data_directory, filename)
     df.to_csv(p, index=False)
 
     if preproc:
-        df = analyse.MCU_preprocessing(df)
+        df = MCU_preprocessing(df)
 
         prefix = "mcu_gegevens"
         filename = f"{prefix}_{year}-{month:02d}-{day:02d}.csv"
@@ -767,6 +768,7 @@ fig: PlotlyFigure = scatter_mapbox(
 fig = add_title(fig, df=fire_closest_route)
 add_marker(fig, center_fire[0], center_fire[1], "Fire")
 if "browser" in output_types:
+    # This will hang without the right browser and X settings!! Ctrl+C to stop
     fig.show()
 if "png" in output_types:
     fig.write_image(output_directory / "fire_michiel_route.png")
@@ -778,6 +780,7 @@ fig: PlotlyFigure = scatter_mapbox(
 fig = add_title(fig, df=dfd)
 add_marker(fig, center_fire[0], center_fire[1], "Fire")
 if "browser" in output_types:
+    # This will hang without the right browser and X settings!! Ctrl+C to stop
     fig.show()
 if "png" in output_types:
     fig.write_image(output_directory / f"day_after_routes.png")
@@ -789,6 +792,7 @@ fig: PlotlyFigure = scatter_mapbox(
 fig = add_title(fig, df=dff)
 add_marker(fig, center_fire[0], center_fire[1], "Fire")
 if "browser" in output_types:
+    # This will hang without the right browser and X settings!! Ctrl+C to stop
     fig.show()
 if "png" in output_types:
     fig.write_image(output_directory / f"fire_day_routes.png")
