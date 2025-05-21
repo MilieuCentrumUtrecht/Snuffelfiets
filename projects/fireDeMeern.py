@@ -426,7 +426,7 @@ def plot_hourly(
     # SQ: Duur van de zonneschijn (in 0.1 uren) per uurvak, berekend uit globale straling (-1 for <0.05 uur)
     # P: Luchtdruk (in 0.1 hPa) herleid naar zeeniveau, tijdens de waarneming
     if variables is None:
-        variables = ["FH", "T", "SQ", "RH", "P", "DD", "HH.1", "YYYYMMDD.1"]
+        variables = ["FH", "T", "SQ", "RH", "P", "DD"]
     df = df[variables]
     angles = df.pop("DD")
     df["Wind speed (m/s)"] = df.pop("FH") / 10
@@ -435,7 +435,8 @@ def plot_hourly(
     df["Sunshine (fraction of hour)"] = df.pop("Sunshine (hours)") / 10
     df["Precipitation (mm)"] = df.pop("RH") / 10
     df["Pressure (bar)"] = df.pop("P") / 1e4
-    df = df.drop(["HH.1", "YYYYMMDD.1"], axis="columns")
+    #df.index.get_level_values("YYYYMMDD_HH")
+    #df = df.drop(["HH.1", "YYYYMMDD.1"], axis="columns")
     # fig = plt.figure(layout="constrained")
     # gs = GridSpec(3, len(dfs), figure=fig)
 
