@@ -7,20 +7,43 @@ from os.path import isfile, join
 from pathlib import Path
 from datetime import datetime
 
-# Settings
-years = [2024]                          # Choose year(s) to import data from        [2021, 2022, 2023, 2024]
-months = [9]                            # Choose month(s) to import data from       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-distance = 10                           # distance (meters) from route to attribute to route(segment)
-prefix = "mcu_gegevens"
-isExtend = True
+def filter_routes(main_directory=None, years=None, months=None, distance=10, prefix="mcu_gegevens", isExtend=True):
+    """ Short description
 
-def do_stuff():
+    Long description
+    Multiple lines can be used
+
+    Args:
+        None
+
+    Kwargs:
+        main_directory: Folder
+        years: Description
+        months: Description
+        distance: Description
+        prefix: Description
+        isExtend: Description
+
+    Returns:
+        dfO_list: Description of output
+        dfR: Description of output
+
+    """
     # Directories for data, route and output files
-    main_directory = Path(Path('~').expanduser(), 'Documents', 'MCUdataclub', 'RouteFilter')
+    if not main_directory:
+        main_directory = Path(Path('~').expanduser(), 'Documents', 'MCUdataclub', 'RouteFilter')
+
+    if not years:
+        years = [2024]
+
+    if not months:
+        months = [9]
     data_directory = Path(main_directory, 'Input_Data')
     routes_directory = Path(main_directory, 'Input_Routes')
     output_directory = Path(main_directory, 'Output')
-    Path.mkdir(output_directory, parents=True, exist_ok=True)
+
+    for path in [data_directory, routes_directory, output_directory]:
+        Path.mkdir(path, parents=True, exist_ok=True)
     print(f'writing output to {output_directory}\n')
 
     # Import route(s) filenames
@@ -43,6 +66,8 @@ def do_stuff():
     warnings.filterwarnings("ignore", message='invalid value encountered in arc')
 
     # Import routes as list of dataframes
+    if len(routes) == 0:
+        raise Exception("No routes given! Abort")
     for filename in routes:
 
         p = Path(routes_directory, filename)
@@ -200,4 +225,9 @@ def do_stuff():
         #p = Path(output_directory, filename2)
         #df.to_csv(p, index=False)
 
+        return dfO_list, dfR
+
     warnings.resetwarnings()
+
+if __name__ == "__main__":
+    dfO_list, dfR = filter_routes()
