@@ -8,25 +8,25 @@ from pathlib import Path
 from datetime import datetime
 
 def filter_routes(main_directory=None, years=None, months=None, distance=10, prefix="mcu_gegevens", isExtend=True):
-    """ Short description
+    """ Function to filter Snuffelfiets measurements within a chosen distance of a route.
 
-    Long description
-    Multiple lines can be used
+    Function uses route csv file(s) to filter data from Snuffelfietsdata csv file(s).
+    Function outputs filtered data per route.
 
     Args:
         None
 
     Kwargs:
-        main_directory: Folder
-        years: Description
-        months: Description
-        distance: Description
-        prefix: Description
-        isExtend: Description
+        main_directory: Folder which has subfolders "Input_Data" and "Input_Routes"
+        years: List of years to include from Snuffelfiets data.
+        months: List of months to include from Snuffelfiets data.
+        distance: Max distance (m) from imported route of measurements to include from Snuffelfiets data.
+        prefix: We use either "mcu_gegevens" (cleaned data) or "api_gegevens" (raw data).
+        isExtend: Extend each route segment by distance.
 
     Returns:
-        dfO_list: Description of output
-        dfR: Description of output
+        dfO_list: List of dataframes with filtered measurements from Snuffelfiets data per route. 
+        dfR_list: List of route points per route.
 
     """
     # Directories for data, route and output files
@@ -225,9 +225,9 @@ def filter_routes(main_directory=None, years=None, months=None, distance=10, pre
         #p = Path(output_directory, filename2)
         #df.to_csv(p, index=False)
 
-        return dfO_list, dfR
+        return dfO_list, dfR_list
 
     warnings.resetwarnings()
 
 if __name__ == "__main__":
-    dfO_list, dfR = filter_routes()
+    dfO_list, dfR_list = filter_routes()
