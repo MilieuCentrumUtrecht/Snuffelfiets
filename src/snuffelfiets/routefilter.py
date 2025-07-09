@@ -7,7 +7,54 @@ from os.path import isfile, join
 from pathlib import Path
 from datetime import datetime
 
-def filter_routes(main_directory=None, years=None, months=None, distance=10, prefix="mcu_gegevens", isExtend=True):
+latMeter = 0.0000089988659514815        # 1 meter expressed in latitude (works for area province Utrecht)
+lonMeter = 0.0000146436902975532        # 1 meter expressed in longitude (works for area province Utrecht)
+latMin = 0 #51.858631                   # smallest latitude province Utrecht
+lonMin = 0 #4.794457                    # smallest longitude province Utrecht
+main_directory_default = Path(Path('~').expanduser(), 'Documents', 'MCUdataclub', 'RouteFilter')
+
+def read_data(main_directory=main_directory_default, years=None, months=None, prefix="mcu_gegevens"):
+    if not years:
+        years = [2024]
+
+    if not months:
+        months = [9]
+
+    data_directory = Path(main_directory, 'Input_Data')
+    if not data_directory.exists():
+        Path.mkdir(data_directory, parents=True, exist_ok=True)
+
+    # Import data files for choosen range from data_directory
+    df_list = []
+    for year in years:
+        for month in months:
+            filename = f'{prefix}_{year}-{month:02d}.csv'
+            p = Path(data_directory, filename)
+            try:
+                df = pd.read_csv(p)
+                df_list.append(df)
+            except:
+                print(f'[datafile] "{filename}" not found in {data_directory}\n')
+    try:
+        df = pd.concat(df_list, ignore_index=True)
+    except:
+        print('\nThere is no dataframe df. \nNo data has been imported. \nExecution will crash now!')
+        return df
+
+    # add columns yLat and xLon to df
+    df['yLat'] = (df['latitude'] - latMin) / latMeter
+    df['xLon'] = (df['longitude'] - lonMin) / lonMeter
+
+    # add column unique_rit_id
+    df['unique_rit_id'] = df['rit_id'] + df['year'] * 1000000 + df['month'] * 10000
+
+    # TODO: drop unnecessary columns?
+    # df = df.drop(columns=['column_nameA', 'column_nameB'])
+
+    print(f'{df.shape[0]} measurements imported...')
+    return df
+
+def read_routes(main_directory=main_directory_default, years=None, months=None, prefix="mcu_gegevens", isExtend=True):
     """ Function to filter Snuffelfiets measurements within a chosen distance of a route.
 
     Function uses route csv file(s) to filter data from Snuffelfietsdata csv file(s).
@@ -29,45 +76,18 @@ def filter_routes(main_directory=None, years=None, months=None, distance=10, pre
         dfR_list: List of route points per route.
 
     """
-    # Directories for data, route and output files
-    if not main_directory:
-        main_directory = Path(Path('~').expanduser(), 'Documents', 'MCUdataclub', 'RouteFilter')
-
-    if not years:
-        years = [2024]
-
-    if not months:
-        months = [9]
-    data_directory = Path(main_directory, 'Input_Data')
     routes_directory = Path(main_directory, 'Input_Routes')
-    output_directory = Path(main_directory, 'Output')
-
-    for path in [data_directory, routes_directory, output_directory]:
-        Path.mkdir(path, parents=True, exist_ok=True)
-    print(f'writing output to {output_directory}\n')
+    if not routes_directory.exists():
+        Path.mkdir(routes_directory, parents=True, exist_ok=True)
 
     # Import route(s) filenames
     routes = [f for f in listdir(routes_directory) if isfile(join(routes_directory, f))]
 
-    # Parameters
-    latMeter = 0.0000089988659514815        # 1 meter expressed in latitude (works for area province Utrecht)
-    lonMeter = 0.0000146436902975532        # 1 meter expressed in longitude (works for area province Utrecht)
-    latMin = 0 #51.858631                   # smallest latitude province Utrecht
-    lonMin = 0 #4.794457                    # smallest longitude province Utrecht
-    timestamp = str(int(datetime.timestamp(datetime.now())))
-
-    # Lists for dataframes
-    df_list = []                            # List for csv imports
-    dfR_list = []                           # List for dfR (routes)
-    dfS_list = []                           # List for dfS (measurements per segment)
-    dfO_list = []                           # List for dfO (output dataframes per route)
-
-    # Ignore expected error
-    warnings.filterwarnings("ignore", message='invalid value encountered in arc')
-
     # Import routes as list of dataframes
     if len(routes) == 0:
         raise Exception("No routes given! Abort")
+
+    dfR_list = []                           # List for dfR (routes)
     for filename in routes:
 
         p = Path(routes_directory, filename)
@@ -85,33 +105,24 @@ def filter_routes(main_directory=None, years=None, months=None, distance=10, pre
             print(f'{filename} not valid for processing.\nMissing latitude and/or longitude columns (probably).\n')
             routes.remove(filename)
             continue
+    return dfR_list, routes
 
-    # Import data files for choosen range from data_directory
-    for year in years:
-        for month in months:
-            filename = f'{prefix}_{year}-{month:02d}.csv'
-            p = Path(data_directory, filename)
-            try:
-                df = pd.read_csv(p)
-                df_list.append(df)
-            except:
-                print(f'[datafile] "{filename}" not found in {data_directory}\n')
-    try:
-        df = pd.concat(df_list, ignore_index=True)
-    except:
-        print('\nThere is no dataframe df. \nNo data has been imported. \nExecution will crash now!')
+def filter_routes(dfR_list, routes, df, main_directory=main_directory_default, distance=10, isExtend=True):
+    output_directory = Path(main_directory, 'Output')
+    if not output_directory.exists():
+        Path.mkdir(output_directory, parents=True, exist_ok=True)
 
-    # add columns yLat and xLon to df
-    df['yLat'] = (df['latitude'] - latMin) / latMeter
-    df['xLon'] = (df['longitude'] - lonMin) / lonMeter
 
-    # add column unique_rit_id
-    df['unique_rit_id'] = df['rit_id'] + df['year'] * 1000000 + df['month'] * 10000
+    # Parameters
+    timestamp = str(int(datetime.timestamp(datetime.now())))
 
-    # TODO: drop unnecessary columns?
-    # df = df.drop(columns=['column_nameA', 'column_nameB'])
+    # Lists for dataframes
+    df_list = []                            # List for csv imports
+    dfS_list = []                           # List for dfS (measurements per segment)
+    dfO_list = []                           # List for dfO (output dataframes per route)
 
-    print(f'{df.shape[0]} measurements imported...')
+    # Ignore expected error
+    warnings.filterwarnings("ignore", message='invalid value encountered in arc')
 
     # use route points to filter df to max/min lat/lon
     maxLat = 0
@@ -133,6 +144,7 @@ def filter_routes(main_directory=None, years=None, months=None, distance=10, pre
     df = df[df['longitude'].between(minLon, maxLon)]
 
     print(f'{df.shape[0]} filtered measurements remaining\n')
+    print(f'writing output to {output_directory}\n')
 
     # LOOP THROUGH ROUTES
     for idx, dfR in enumerate(dfR_list):
@@ -209,25 +221,22 @@ def filter_routes(main_directory=None, years=None, months=None, distance=10, pre
         # Concat all dfS of route into dfO in dfO_list
         dfO_list.append(pd.concat(dfS_list, ignore_index=True))
 
-        # export dfO
-        filename2 = timestamp + '-dfOutput-' + routes[idx]
-        p = Path(output_directory, filename2)
-        dfO_list[idx].to_csv(p, index=False)
-        print(f'...exported {dfO_list[idx].shape[0]} filtered measurements to {filename2}\n')
+        output_filtered(idx, dfO_list, dfR, timestamp, routes, output_directory=output_directory)
 
-        # export dfR for testing
-        filename2 = timestamp + '-dfRoute-' + routes[idx]
-        p = Path(output_directory, filename2)
-        dfR.to_csv(p, index=False)
 
-        # export df for testing
-        #filename2 = timestamp  + '-df-' + routes[idx]
-        #p = Path(output_directory, filename2)
-        #df.to_csv(p, index=False)
+def output_filtered(idx, dfO_list, dfR, timestamp, routes, output_directory=None):
+    # export dfO
+    filename2 = timestamp + '-dfOutput-' + routes[idx]
+    p = Path(output_directory, filename2)
+    dfO_list[idx].to_csv(p, index=False)
+    print(f'...exported {dfO_list[idx].shape[0]} filtered measurements to {filename2}\n')
 
-        return dfO_list, dfR_list
+    # export dfR for testing
+    filename2 = timestamp + '-dfRoute-' + routes[idx]
+    p = Path(output_directory, filename2)
+    dfR.to_csv(p, index=False)
 
-    warnings.resetwarnings()
-
-if __name__ == "__main__":
-    dfO_list, dfR_list = filter_routes()
+    # export df for testing
+    #filename2 = timestamp  + '-df-' + routes[idx]
+    #p = Path(output_directory, filename2)
+    #df.to_csv(p, index=False)
