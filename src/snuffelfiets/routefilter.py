@@ -7,6 +7,8 @@ from os.path import isfile, join
 from pathlib import Path
 from datetime import datetime
 
+from snuffelfiets.analyse import verdeel_in_ritten, bewerk_timestamp
+
 latMeter = 0.0000089988659514815  # 1 meter expressed in latitude (works for area province Utrecht)
 lonMeter = 0.0000146436902975532  # 1 meter expressed in longitude (works for area province Utrecht)
 latMin = 0  # 51.858631                   # smallest latitude province Utrecht
@@ -14,10 +16,14 @@ lonMin = 0  # 4.794457                    # smallest longitude province Utrecht
 main_directory_default = Path(
     Path("~").expanduser(), "Documents", "MCUdataclub", "RouteFilter"
 )
+data_directory_default = Path(main_directory_default, "Input_Data")
+input_directory_default = Path(main_directory_default, "Input_Data")
+routes_directory_default = Path(main_directory_default, "Input_Routes")
+output_directory_default = Path(main_directory_default, "Output")
 
 
 def read_data(
-    main_directory=main_directory_default,
+    data_directory=data_directory_default,
     years=None,
     months=None,
     prefix="mcu_gegevens",
@@ -28,7 +34,6 @@ def read_data(
     if not months:
         months = [9]
 
-    data_directory = Path(main_directory, "Input_Data")
     if not data_directory.exists():
         Path.mkdir(data_directory, parents=True, exist_ok=True)
 
@@ -46,11 +51,14 @@ def read_data(
     try:
         df = pd.concat(df_list, ignore_index=True)
     except:
-        print(
+        raise RuntimeError(
             "\nThere is no dataframe df. \nNo data has been imported. \nExecution will crash now!"
         )
-        return df
 
+    if "rid_id" not in df.columns:
+        df = verdeel_in_ritten(df)
+    if any(col not in df.columns for col in ["year", "month"]):
+        df = bewerk_timestamp(df, split=True)
     # add columns yLat and xLon to df
     df["yLat"] = (df["latitude"] - latMin) / latMeter
     df["xLon"] = (df["longitude"] - lonMin) / lonMeter
@@ -66,7 +74,7 @@ def read_data(
 
 
 def read_routes(
-    main_directory=main_directory_default,
+    routes_directory=routes_directory_default,
     years=None,
     months=None,
     prefix="mcu_gegevens",
@@ -86,14 +94,13 @@ def read_routes(
         months: List of months to include from Snuffelfiets data.
         distance: Max distance (m) from imported route of measurements to include from Snuffelfiets data.
         prefix: We use either "mcu_gegevens" (cleaned data) or "api_gegevens" (raw data).
-        isExtend: Extend each route segment by distance.
+        isExtend: Extend route segment from end point E with set distance to avoid dropping points
 
     Returns:
         dfO_list: List of dataframes with filtered measurements from Snuffelfiets data per route.
         dfR_list: List of route points per route.
 
     """
-    routes_directory = Path(main_directory, "Input_Routes")
     if not routes_directory.exists():
         Path.mkdir(routes_directory, parents=True, exist_ok=True)
 
@@ -105,6 +112,7 @@ def read_routes(
         raise Exception("No routes given! Abort")
 
     dfR_list = []  # List for dfR (routes)
+    print(f"Start reading {routes}")
     for filename in routes:
 
         p = Path(routes_directory, filename)
@@ -117,13 +125,15 @@ def read_routes(
             print(f"[{filename}] {dfR.shape[0]} unique route points remaining\n")
             dfR.reset_index(inplace=True)
             dfR_list.append(dfR)
-
         except:
             print(
                 f"{filename} not valid for processing.\nMissing latitude and/or longitude columns (probably).\n"
             )
-            routes.remove(filename)
+            routes.remove(
+                filename
+            )  # TODO: Fix: This makes a buggy bug! Never loop over a changing list
             continue
+    print(f"Read {len(dfR_list)} valid routes")
     return dfR_list, routes
 
 
@@ -131,11 +141,10 @@ def filter_routes(
     dfR_list,
     routes,
     df,
-    main_directory=main_directory_default,
+    output_directory=output_directory_default,
     distance=10,
     isExtend=True,
 ):
-    output_directory = Path(main_directory, "Output")
     if not output_directory.exists():
         Path.mkdir(output_directory, parents=True, exist_ok=True)
 
