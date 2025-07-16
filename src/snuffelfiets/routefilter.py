@@ -106,6 +106,7 @@ def read_routes(
 
     # Import route(s) filenames
     routes = [f for f in listdir(routes_directory) if isfile(join(routes_directory, f))]
+    routesInvalid = []
 
     # Import routes as list of dataframes
     if len(routes) == 0:
@@ -129,10 +130,9 @@ def read_routes(
             print(
                 f"{filename} not valid for processing.\nMissing latitude and/or longitude columns (probably).\n"
             )
-            routes.remove(
-                filename
-            )  # TODO: Fix: This makes a buggy bug! Never loop over a changing list
+            routesInvalid.append(filename)
             continue
+    routes = [x for x in routes if x not in routesInvalid]
     print(f"Read {len(dfR_list)} valid routes")
     return dfR_list, routes
 
