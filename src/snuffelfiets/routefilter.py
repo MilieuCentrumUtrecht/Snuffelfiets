@@ -7,7 +7,7 @@ from os.path import isfile, join
 from pathlib import Path
 from datetime import datetime
 
-from snuffelfiets.analyse import verdeel_in_ritten, bewerk_timestamp
+from src.snuffelfiets.analyse import verdeel_in_ritten, bewerk_timestamp
 
 latMeter = 0.0000089988659514815  # 1 meter expressed in latitude (works for area province Utrecht)
 lonMeter = 0.0000146436902975532  # 1 meter expressed in longitude (works for area province Utrecht)
