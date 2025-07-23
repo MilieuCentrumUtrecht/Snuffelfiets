@@ -8,11 +8,12 @@ import pytest
 
 DATA_DIR = Path(__file__).parent.resolve() / "data"
 FIETSERSBOND_DIR = (DATA_DIR / "Fietsersbond").resolve()
-# TEST_DATA_PATH = (DATA_DIR / "test_data.csv").resolve()
+TEST_DATA_PATH = (DATA_DIR / "test_data.csv").resolve()
 
 
-def test_data(TEST_DATA_PATH) -> pd.DataFrame:
-    df = pd.read_csv(test_data_path)
+@pytest.fixture
+def test_data() -> pd.DataFrame:
+    df = pd.read_csv(TEST_DATA_PATH)
     # Our CKAN API gets some data as objects instead of ints
     # To emulate that, we convert the dtypes of certain columns here
     for column in ["entity_id", "version_major", "version_minor", "error_code"]:
