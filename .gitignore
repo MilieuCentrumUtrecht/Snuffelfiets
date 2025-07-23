@@ -23,3 +23,5 @@ docs/apidocs
 
 # Mac
 .DS_Store
+.gitignore
+eigen_archief/
