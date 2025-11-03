@@ -24,10 +24,12 @@ output_directory_default = Path(main_directory_default, "Output")
 
 
 def read_data(
+    dfR_list,
     data_directory=data_directory_default,
     years=None,
     months=None,
     prefix="mcu_gegevens",
+    distance=10,
 ):
     if not years:
         years = [2024]
@@ -38,6 +40,24 @@ def read_data(
     if not data_directory.exists():
         Path.mkdir(data_directory, parents=True, exist_ok=True)
 
+    print(f'\nIMPORTING DATA')
+
+    # use dfR_list to find min/max of lat/lon
+    maxLat = 0
+    minLat = 999
+    maxLon = 0
+    minLon = 999
+
+    for dfR in dfR_list:
+        maxLatRoute = max(dfR["latitude"])
+        minLatRoute = min(dfR["latitude"])
+        maxLonRoute = max(dfR["longitude"])
+        minLonRoute = min(dfR["longitude"])
+        maxLat = max(maxLatRoute, maxLat) + (distance * latMeter)
+        minLat = min(minLatRoute, minLat) - (distance * latMeter)
+        maxLon = max(maxLonRoute, maxLon) + (distance * lonMeter)
+        minLon = min(minLonRoute, minLon) - (distance * lonMeter)
+
     # Import data files for choosen range from data_directory
     df_list = []
     for year in years:
@@ -46,9 +66,13 @@ def read_data(
             p = Path(data_directory, filename)
             try:
                 df = pd.read_csv(p)
+                N = df.shape[0]
+                df = df[df["latitude"].between(minLat, maxLat)]
+                df = df[df["longitude"].between(minLon, maxLon)]
+                print(f"   {filename}: imported {df.shape[0]} of {N} measurements")
                 df_list.append(df)
             except:
-                print(f'[datafile] "{filename}" not found in {data_directory}\n')
+                print(f'   {filename} not found in {data_directory}')
     try:
         df = pd.concat(df_list, ignore_index=True)
     except:
@@ -70,7 +94,7 @@ def read_data(
     # TODO: drop unnecessary columns?
     # df = df.drop(columns=['column_nameA', 'column_nameB'])
 
-    print(f"{df.shape[0]} measurements imported...")
+    print(f"TOTAL: {df.shape[0]} measurements imported")
     return df
 
 
@@ -105,6 +129,8 @@ def read_routes(
     if not routes_directory.exists():
         Path.mkdir(routes_directory, parents=True, exist_ok=True)
 
+    print(f'\nIMPORT ROUTES')
+
     # Import route(s) filenames
     routes = [f for f in listdir(routes_directory) if isfile(join(routes_directory, f))]
     routesInvalid = []
@@ -114,7 +140,6 @@ def read_routes(
         raise Exception("No routes given! Abort")
 
     dfR_list = []  # List for dfR (routes)
-    print(f"Start reading {routes}")
     for filename in routes:
 
         p = Path(routes_directory, filename)
@@ -134,9 +159,9 @@ def read_routes(
                         if lon:
                             longitude_list.append(float(lon.group(1)))
                 dfR = pd.DataFrame({'latitude':latitude_list, 'longitude':longitude_list})
-            print(f'[{filename}] {dfR["latitude"].shape[0]} route points read')
+            N = dfR["latitude"].shape[0]
             dfR.drop_duplicates(subset=["latitude", "longitude"], inplace=True)
-            print(f"[{filename}] {dfR.shape[0]} unique route points remaining\n")
+            print(f'   {filename}: imported {dfR.shape[0]} unique route points of {N}')
             dfR.reset_index(inplace=True)
             dfR_list.append(dfR)
         except:
@@ -146,7 +171,6 @@ def read_routes(
             routesInvalid.append(filename)
             continue
     routes = [x for x in routes if x not in routesInvalid]
-    print(f"Read {len(dfR_list)} valid routes")
     return dfR_list, routes
 
 
@@ -161,6 +185,8 @@ def filter_routes(
     if not output_directory.exists():
         Path.mkdir(output_directory, parents=True, exist_ok=True)
 
+    print(f'\nFILTER ROUTES')
+
     # Parameters
     timestamp = str(int(datetime.timestamp(datetime.now())))
 
@@ -172,27 +198,8 @@ def filter_routes(
     # Ignore expected error
     warnings.filterwarnings("ignore", message="invalid value encountered in arc")
 
-    # use route points to filter df to max/min lat/lon
-    maxLat = 0
-    minLat = 999
-    maxLon = 0
-    minLon = 999
-
-    for dfR in dfR_list:
-        maxLatRoute = max(dfR["latitude"])
-        minLatRoute = min(dfR["latitude"])
-        maxLonRoute = max(dfR["longitude"])
-        minLonRoute = min(dfR["longitude"])
-        maxLat = max(maxLatRoute, maxLat) + (distance * latMeter)
-        minLat = min(minLatRoute, minLat) - (distance * latMeter)
-        maxLon = max(maxLonRoute, maxLon) + (distance * lonMeter)
-        minLon = min(minLonRoute, minLon) - (distance * lonMeter)
-
-    df = df[df["latitude"].between(minLat, maxLat)]
-    df = df[df["longitude"].between(minLon, maxLon)]
-
-    print(f"{df.shape[0]} filtered measurements remaining\n")
-    print(f"writing output to {output_directory}\n")
+    #print(f"\n{df.shape[0]} filtered measurements remaining")
+    print(f"writing output to {output_directory}")
 
     # LOOP THROUGH ROUTES
     for idx, dfR in enumerate(dfR_list):
@@ -209,7 +216,7 @@ def filter_routes(
         dfR["yB"] = (dfR["latitude"] - latMin) / latMeter
         dfR["xE"] = (dfR["longitude2"] - lonMin) / lonMeter
         dfR["yE"] = (dfR["latitude2"] - latMin) / latMeter
-        print(f"created {dfR.shape[0]} segments from {routes[idx]}...")
+        print(f"   created {dfR.shape[0]} segments from {routes[idx]}")
 
         # Calculate segment length
         dfR["BE"] = np.sqrt(
@@ -293,9 +300,7 @@ def output_filtered(idx, dfO_list, dfR, timestamp, routes, output_directory=None
     filename2 = filename2.replace("gpx", "csv")
     p = Path(output_directory, filename2)
     dfO_list[idx].to_csv(p, index=False)
-    print(
-        f"...exported {dfO_list[idx].shape[0]} filtered measurements to {filename2}\n"
-    )
+    print(f'      exported {dfO_list[idx].shape[0]} filtered measurements to {filename2}')
 
     # export dfR for testing
     filename2 = timestamp + "-dfRoute-" + routes[idx]
