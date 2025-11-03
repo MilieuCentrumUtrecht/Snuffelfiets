@@ -2,12 +2,13 @@
 import pandas as pd
 import numpy as np
 import warnings
+import re
 from os import listdir
 from os.path import isfile, join
 from pathlib import Path
 from datetime import datetime
 
-from snuffelfiets.analyse import verdeel_in_ritten, bewerk_timestamp
+from src.snuffelfiets.analyse import verdeel_in_ritten, bewerk_timestamp
 
 latMeter = 0.0000089988659514815  # 1 meter expressed in latitude (works for area province Utrecht)
 lonMeter = 0.0000146436902975532  # 1 meter expressed in longitude (works for area province Utrecht)
@@ -119,8 +120,20 @@ def read_routes(
         p = Path(routes_directory, filename)
 
         try:
-            # TODO only import csv with correct columns and not empty
-            dfR = pd.read_csv(p)
+            if str(p).endswith('.csv'):
+                dfR = pd.read_csv(p)
+            elif str(p).endswith('.gpx'):
+                latitude_list = []
+                longitude_list = []
+                with open(p) as f:
+                    for line in f:
+                        lat = re.search(' lat="(.+?)"', line)
+                        if lat:
+                            latitude_list.append(float(lat.group(1)))
+                        lon = re.search(' lon="(.+?)"', line)
+                        if lon:
+                            longitude_list.append(float(lon.group(1)))
+                dfR = pd.DataFrame({'latitude':latitude_list, 'longitude':longitude_list})
             print(f'[{filename}] {dfR["latitude"].shape[0]} route points read')
             dfR.drop_duplicates(subset=["latitude", "longitude"], inplace=True)
             print(f"[{filename}] {dfR.shape[0]} unique route points remaining\n")
@@ -277,6 +290,7 @@ def filter_routes(
 def output_filtered(idx, dfO_list, dfR, timestamp, routes, output_directory=None):
     # export dfO
     filename2 = timestamp + "-dfOutput-" + routes[idx]
+    filename2 = filename2.replace("gpx", "csv")
     p = Path(output_directory, filename2)
     dfO_list[idx].to_csv(p, index=False)
     print(
@@ -285,10 +299,12 @@ def output_filtered(idx, dfO_list, dfR, timestamp, routes, output_directory=None
 
     # export dfR for testing
     filename2 = timestamp + "-dfRoute-" + routes[idx]
+    filename2 = filename2.replace("gpx", "csv")
     p = Path(output_directory, filename2)
     dfR.to_csv(p, index=False)
 
     # export df for testing
     # filename2 = timestamp  + '-df-' + routes[idx]
+    # filename2 = filename2.replace("gpx", "csv")
     # p = Path(output_directory, filename2)
     # df.to_csv(p, index=False)
