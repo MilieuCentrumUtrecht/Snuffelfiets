@@ -10,8 +10,8 @@ from datetime import datetime
 
 from src.snuffelfiets.analyse import verdeel_in_ritten, bewerk_timestamp
 
-latMeter = 0.0000089988659514815  # 1 meter expressed in latitude (works for area province Utrecht)
-lonMeter = 0.0000146436902975532  # 1 meter expressed in longitude (works for area province Utrecht)
+latMeter = 0.0000089988659514815          # 1 meter expressed in latitude (works for area province Utrecht)
+lonMeter = 0.0000146436902975532          # 1 meter expressed in longitude (works for area province Utrecht)
 latMin = 0  # 51.858631                   # smallest latitude province Utrecht
 lonMin = 0  # 4.794457                    # smallest longitude province Utrecht
 main_directory_default = Path(
@@ -22,6 +22,13 @@ input_directory_default = Path(main_directory_default, "Input_Data")
 routes_directory_default = Path(main_directory_default, "Input_Routes")
 output_directory_default = Path(main_directory_default, "Output")
 
+'''
+Example:
+    from src.snuffelfiets import routefilter as rf
+    dfR_list, routes = rf.read_routes()
+    df = rf.read_data(dfR_list, years=[2024], months=[9, 10, 11])
+    rf.filter_routes(dfR_list, routes, df)
+'''
 
 def read_data(
     dfR_list,
