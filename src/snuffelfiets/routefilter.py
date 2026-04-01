@@ -86,11 +86,11 @@ def read_data(
         raise RuntimeError(
             "\nThere is no dataframe df. \nNo data has been imported. \nExecution will crash now!"
         )
-
+    '''
     if "rid_id" not in df.columns:
         df = verdeel_in_ritten(df)
     if any(col not in df.columns for col in ["year", "month"]):
-        df = bewerk_timestamp(df, split=True)
+        df = bewerk_timestamp(df, split=True)'''
     # add columns yLat and xLon to df
     df["yLat"] = (df["latitude"] - latMin) / latMeter
     df["xLon"] = (df["longitude"] - lonMin) / lonMeter
