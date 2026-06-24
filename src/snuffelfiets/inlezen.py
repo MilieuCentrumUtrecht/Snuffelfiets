@@ -164,6 +164,46 @@ def convert_to_int(
     return df
 
 
+def daily_csv_dump(
+    api_key, year, month, day, data_directory=".", prefix="api_gegevens", preproc=True
+):
+    """Save a day of data as CSV.
+
+    Args:
+        api_key: API key for the Snuffelfiets CKAN repository
+        year: Year of the day which should be fetched
+        month: Month of the day which should be fetched
+        day: Day which should be fetched
+
+    Kwargs:
+        data_directory: Directory in which the CSVs should be saved
+        prefix: Prefix given to the saved data folder
+        preproc: Apply MCU-specific preprocessing before saving
+    """
+
+    start_datum = f"{year}-{month:02d}-{day:02d}"
+    stop_datum = (
+        f"{year+1}-01-01"
+        if (month == 12 and day == 31)
+        else f"{year}-{month:02d}-{day+1:02d}"
+    )
+    print(f"Getting {start_datum} till {stop_datum}")
+    df = call_api(api_key, start_datum, stop_datum)
+    df = correct_units(df)
+
+    filename = f"{prefix}_{year}-{month:02d}-{day:02d}.csv"
+    p = Path(data_directory, filename)
+    df.to_csv(p, index=False)
+
+    if preproc:
+        df = MCU_preprocessing(df)
+
+        prefix = "mcu_gegevens"
+        filename = f"{prefix}_{year}-{month:02d}-{day:02d}.csv"
+        p = Path(data_directory, filename)
+        df.to_csv(p, index=False)
+
+
 def monthly_csv_dump(
     api_key, year, month, data_directory=".", prefix="api_gegevens", preproc=True
 ):
