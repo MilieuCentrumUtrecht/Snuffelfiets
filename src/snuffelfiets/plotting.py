@@ -46,7 +46,7 @@ def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
 
     if hexagon_size is not None:
         hexbin_args["nx_hexagon"] = np.ceil(
-            (df["longitude"].max() - df["longitude"].min()) / hexagon_size,
+            (df[hexbin_args["lat"]].max() - df[hexbin_args["lon"]].min()) / hexagon_size,
         ).astype("int")
 
     if hexbin_args["nx_hexagon"] > 500:
