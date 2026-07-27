@@ -109,7 +109,7 @@ def call_api(
 
     sql_conditions_dates = [
         {"col": "recording_timestamp", "op": ">", "val": start_datum},
-        {"col": "recording_timestamp", "op": "<", "val": stop_datum},
+        {"col": "recording_timestamp", "op": "<=", "val": stop_datum},
     ]
     sql_conditions_all = sql_conditions + sql_conditions_dates
 
