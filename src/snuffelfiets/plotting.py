@@ -237,3 +237,30 @@ def select_polygons(polygons_in, names, prop="statnaam"):
     polygons["features"] = feats
 
     return polygons
+
+
+def scatter_map(df, plot_args={}, layout_args={}):
+    """Maak een line plot."""
+
+    plot_args_defaults = dict(
+        data_frame=df,
+        lat="latitude",
+        lon="longitude",
+        color="rit_id",
+        center=dict(lat=52.090695, lon=5.121314),
+        zoom=10,
+        animation_frame=None,
+    )
+
+    layout_args_defaults = dict(
+        mapbox_style="carto-positron",
+        margin=dict(b=0, t=0, l=0, r=0),
+    )
+
+    plot_args = {**plot_args_defaults, **plot_args}
+    layout_args = {**layout_args_defaults, **layout_args}
+
+    fig = px.scatter_map(**plot_args)
+    fig.update_layout(**layout_args)
+
+    return fig
