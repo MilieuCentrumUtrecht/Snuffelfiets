@@ -23,7 +23,7 @@ def aantal_fietsers(df):
     return len(unique_ids)
 
 
-def bewerk_timestamp(df, split=False):
+def bewerk_timestamp(df, split=False, col_name="recording_timestamp", format_="%Y-%m-%dT%H:%M:%S"):
     """Maak kolommen met datetime objects.
 
     evt. uitgesplitst in dag, week, maand, kwartaal, jaar
@@ -31,8 +31,8 @@ def bewerk_timestamp(df, split=False):
 
     columns = ["date_time"]
     df["date_time"] = pd.to_datetime(
-        df["recording_timestamp"],
-        format="%Y-%m-%dT%H:%M:%S",
+        df[col_name],
+        format=format_,
     )
     df = _sort(df)
 
@@ -180,7 +180,7 @@ def calculate_distance_to_point(
     ).m
 
 
-def split_in_ritten(df, t_seconden=1800):
+def split_in_ritten(df, t_seconden=1800, col_lat="latitude", col_lon="longitude"):
     """For each entity_id, split in separate bike rides.
 
     add columns with duration, distance and speed.
@@ -205,10 +205,10 @@ def split_in_ritten(df, t_seconden=1800):
 
         # Calculate the distance between measurements.
         df_id["afstand"] = haversine(
-            df_id.latitude,
-            df_id.longitude,
-            df_id.latitude.shift(),
-            df_id.longitude.shift(),
+            df_id[col_lat],
+            df_id[col_lon],
+            df_id[col_lat].shift(),
+            df_id[col_lon].shift(),
         )
         df_id["afstand"][rit_mask] = 0.0
 
