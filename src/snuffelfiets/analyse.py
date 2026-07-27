@@ -9,7 +9,6 @@
 
 import numpy as np
 import pandas as pd
-from geopy.distance import geodesic as gd
 
 import knmi
 
