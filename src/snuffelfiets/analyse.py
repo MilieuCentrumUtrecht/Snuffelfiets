@@ -218,6 +218,8 @@ def split_in_ritten(df, t_seconden=1800, col_lat="latitude", col_lon="longitude"
         # Copy data from entity_id to the collated dataframe.
         columns = ["duur", "afstand", "snelheid", "rit_id"]
         for col in columns:
+            df[col] = df[col].astype("timedelta64[ns]")
+            df_id[col] = df_id[col].astype("timedelta64[ns]")
             df.loc[df_id.index, col] = df_id[col]
 
     print(f"Added {columns} columns to dataframe.")
