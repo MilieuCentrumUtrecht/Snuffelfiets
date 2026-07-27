@@ -44,6 +44,9 @@ def bewerk_timestamp(df, split=False, col_name="recording_timestamp", format_="%
         df["quarter"] = df["date_time"].dt.quarter
         df["year"] = df["date_time"].dt.year
 
+        df['date'] = df["date_time"].dt.date
+        df['hour'] = df["date_time"].dt.hour
+
     print(f"Added {columns} columns to dataframe.")
 
     return df
