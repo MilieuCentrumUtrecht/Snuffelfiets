@@ -27,3 +27,5 @@ docs/apidocs
 
 .venv/
 src/snuffelfiets/.streamlit/secrets.toml
+
+.venv/

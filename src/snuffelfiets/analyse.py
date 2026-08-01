@@ -35,6 +35,7 @@ def bewerk_timestamp(df, split=False, col_name="recording_timestamp", format_="%
         format=format_,
     )
     df = _sort(df)
+    df["date_time"] = df["date_time"].astype("datetime64[ns]")
 
     if split:
         columns += ["day", "week", "month", "quarter", "year"]
@@ -189,7 +190,7 @@ def split_in_ritten(df, t_seconden=1800, col_lat="latitude", col_lon="longitude"
     add columns with duration, distance and speed.
     """
 
-    df["duur"] = np.timedelta64(0, "s")
+    df["duur"] = np.timedelta64(0, "ns")
     df["rit_id"] = 0
     df["afstand"] = 0.0
     df["snelheid"] = 0.0
@@ -214,6 +215,7 @@ def split_in_ritten(df, t_seconden=1800, col_lat="latitude", col_lon="longitude"
             df_id[col_lon].shift(),
         )
         df_id["afstand"][rit_mask] = 0.0
+        df_id["afstand"] = df_id["afstand"].astype(float)
 
         # Calculate the speed for each measurement.
         df_id["snelheid"] = df_id["afstand"] / df_id["duur"].dt.total_seconds()
@@ -221,8 +223,6 @@ def split_in_ritten(df, t_seconden=1800, col_lat="latitude", col_lon="longitude"
         # Copy data from entity_id to the collated dataframe.
         columns = ["duur", "afstand", "snelheid", "rit_id"]
         for col in columns:
-            df[col] = df[col].astype("timedelta64[ns]")
-            df_id[col] = df_id[col].astype("timedelta64[ns]")
             df.loc[df_id.index, col] = df_id[col]
 
     print(f"Added {columns} columns to dataframe.")
