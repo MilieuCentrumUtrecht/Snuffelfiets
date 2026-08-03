@@ -31,7 +31,7 @@ with st.sidebar:
     st.session_state.api_key = st.text_input(
         "CKAN API key",
         value=st.session_state.api_key,
-        # disabled=True,
+        disabled=True,
         )
 
     st.session_state.data_directory = st.text_input(
