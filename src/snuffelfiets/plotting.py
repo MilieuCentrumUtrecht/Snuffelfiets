@@ -15,6 +15,8 @@ import plotly.figure_factory as ff
 import plotly.express as px
 from plotly.colors import hex_to_rgb
 
+from shapely import Polygon, LineString, MultiPolygon, MultiLineString
+
 
 def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
     """Maak een hexbin plot."""
@@ -274,3 +276,38 @@ def scatter_map(df, plot_args={}, layout_args={}):
     fig.update_layout(**layout_args)
 
     return fig
+
+
+def geometry2latlon(df, col_names=[]):
+    """Convert shapely geometry to arrays of latitudes and longitudes."""
+
+    lats, lons = [], []
+    aux = [[] for col_name in col_names]
+
+    for name, row in df.iterrows():
+
+        feature = row['geometry']
+        if isinstance(feature, (Polygon, LineString)):
+            geoms = [feature]
+        elif isinstance(feature, (MultiPolygon, MultiLineString)):
+            geoms = feature.geoms
+        else:
+            continue
+
+        for geom in geoms:
+            if isinstance(feature, (Polygon, MultiPolygon)):
+                x, y = geom.exterior.xy
+            else:
+                x, y = geom.xy
+            lats = np.append(lats, y)
+            lons = np.append(lons, x)
+            for i, col_name in enumerate(col_names):
+                aux[i] = np.append(aux[i], [row[col_name]]*len(y))
+            lats = np.append(lats, None)
+            lons = np.append(lons, None)
+            for i, col_name in enumerate(col_names):
+                aux[i] = np.append(aux[i], None)
+
+    # TODO: POINT
+
+    return lats, lons, aux
