@@ -18,6 +18,11 @@ from plotly.colors import hex_to_rgb
 
 def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
     """Maak een hexbin plot."""
+    return hexbin_map(df, hexagon_size, hexbin_args, layout_args)
+
+
+def hexbin_map(df, hexagon_size=None, hexbin_args={}, layout_args={}):
+    """Maak een hexbin plot."""
 
     default_hexbin_args = dict(
         data_frame=df,
@@ -35,10 +40,10 @@ def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
         labels={"color": "PM2.5"},
         center=dict(lat=52.090695, lon=5.121314),
         zoom=10,
+        map_style="carto-positron",
     )
     default_layout_args = dict(
-        mapbox_style="carto-positron",
-        margin=dict(b=0, t=0, l=0, r=0),
+        # margin=dict(b=0, t=0, l=0, r=0),
     )
 
     hexbin_args = {**default_hexbin_args, **hexbin_args}
@@ -53,13 +58,18 @@ def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
         print("Too many hexagons; please increase hexagon_size")
         return
 
-    fig = ff.create_hexbin_mapbox(**hexbin_args)
+    fig = ff.create_hexbin_map(**hexbin_args)
     fig.update_layout(**layout_args)
 
     return fig
 
 
 def line_mapbox(df, plot_args={}, layout_args={}):
+    """Maak een line plot."""
+    return line_map(df, plot_args, layout_args)
+
+
+def line_map(df, plot_args={}, layout_args={}):
     """Maak een line plot."""
 
     plot_args_defaults = dict(
@@ -70,17 +80,17 @@ def line_mapbox(df, plot_args={}, layout_args={}):
         center=dict(lat=52.090695, lon=5.121314),
         zoom=10,
         animation_frame=None,
+        map_style="carto-positron",
     )
 
     layout_args_defaults = dict(
-        mapbox_style="carto-positron",
-        margin=dict(b=0, t=0, l=0, r=0),
+        # margin=dict(b=0, t=0, l=0, r=0),
     )
 
     plot_args = {**plot_args_defaults, **plot_args}
     layout_args = {**layout_args_defaults, **layout_args}
 
-    fig = px.line_mapbox(**plot_args)
+    fig = px.line_map(**plot_args)
     fig.update_layout(**layout_args)
 
     return fig
@@ -250,11 +260,11 @@ def scatter_map(df, plot_args={}, layout_args={}):
         center=dict(lat=52.090695, lon=5.121314),
         zoom=10,
         animation_frame=None,
+        map_style="carto-positron",
     )
 
     layout_args_defaults = dict(
-        mapbox_style="carto-positron",
-        margin=dict(b=0, t=0, l=0, r=0),
+        # margin=dict(b=0, t=0, l=0, r=0),
     )
 
     plot_args = {**plot_args_defaults, **plot_args}
