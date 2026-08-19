@@ -18,14 +18,8 @@ st.set_page_config(
 
 # initialize
 ckan_secret = "CKAN_API_KEY" in st.secrets.keys()
-st_init = {
-    "package_root": PACKAGE_ROOT,
-    "data_directory": PACKAGE_ROOT / "static" / "data",
-    "api_key": st.secrets["CKAN_API_KEY"] if ckan_secret else "",
-}
-for k, v in st_init.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
+st_init = {"api_key": st.secrets["CKAN_API_KEY"] if ckan_secret else ""}
+snuffelfiets_streamlit.init_session_state(st_init)
 
 
 with st.sidebar:

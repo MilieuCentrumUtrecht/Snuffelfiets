@@ -44,3 +44,20 @@ def page_navigation():
             )
 
     st.divider()
+
+
+def init_session_state(
+        items: dict = {},
+        ) -> None:
+    """Ensure session_state initialization."""
+
+    package_root = Path(__file__).parent
+
+    st_init = {
+        "package_root": package_root,
+        "data_directory": package_root / "static" / "data",
+    }
+    st_init = {**items, **st_init}
+    for k, v in st_init.items():
+        if k not in st.session_state:
+            st.session_state[k] = v

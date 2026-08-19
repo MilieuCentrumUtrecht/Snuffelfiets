@@ -10,6 +10,8 @@ from snuffelfiets import (
     )
 
 
+snuffelfiets_streamlit.init_session_state()
+
 with st.sidebar:
     snuffelfiets_streamlit.page_navigation()
 
