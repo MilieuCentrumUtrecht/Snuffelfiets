@@ -3,5 +3,5 @@ numpy
 pandas
 geopandas
 plotly
-requests
 knmi-py
+luchtkwaliteit @ git+https://github.com/MichielKleinnijenhuis/luchtkwaliteit.git

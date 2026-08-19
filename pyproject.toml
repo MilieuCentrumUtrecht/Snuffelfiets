@@ -15,20 +15,17 @@ description = "Rapporting and analysis scripts for the Milieucentrum Utrecht Snu
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
 dependencies = [
+  "streamlit",
   "numpy",
   "pandas",
   "geopandas",
   "plotly",
   "knmi-py",
-  "streamlit",
+  "luchtkwaliteit @ git+https://github.com/MichielKleinnijenhuis/luchtkwaliteit.git",
 ]
 classifiers = [
 ]
 dynamic = ["version"]
-
-[project.optional-dependencies]
-dev = [
-]
 
 [project.urls]
 homepage = "https://qualikiz.com"
@@ -38,16 +35,10 @@ issues = "https://gitlab.com/qualikiz-group/QuaLiKiz-pythontools/-/issues"
 
 [tool.setuptools]
 include-package-data = true # Include files specified by MANIFEST.in
-
-[tool.versioneer]
-# Empty for now
-
-[tool.poetry]
-requires-poetry = ">=2.0"
-version = "0.0.0"
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[tool.versioneer]
+# Empty for now
