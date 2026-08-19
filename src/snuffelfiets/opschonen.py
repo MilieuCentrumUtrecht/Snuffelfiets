@@ -88,7 +88,7 @@ def correct_units(df, correcties=CORRECTIE_DEFAULTS):
         default = {"factor": 1.0, "offset": 0, "conditie": None}
         corr = {**default, **correctie}
 
-        print(f"Correcting column {col:12} using {correctie}")
+        print(f"Correcting column {col:12} using {corr}")
 
         mask = _get_mask(df, col, corr)
 

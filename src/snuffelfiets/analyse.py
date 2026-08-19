@@ -9,7 +9,6 @@
 
 import numpy as np
 import pandas as pd
-from geopy.distance import geodesic as gd
 
 import knmi
 
@@ -24,7 +23,7 @@ def aantal_fietsers(df):
     return len(unique_ids)
 
 
-def bewerk_timestamp(df, split=False):
+def bewerk_timestamp(df, split=False, col_name="recording_timestamp", format_="%Y-%m-%dT%H:%M:%S"):
     """Maak kolommen met datetime objects.
 
     evt. uitgesplitst in dag, week, maand, kwartaal, jaar
@@ -32,10 +31,11 @@ def bewerk_timestamp(df, split=False):
 
     columns = ["date_time"]
     df["date_time"] = pd.to_datetime(
-        df["recording_timestamp"],
-        format="%Y-%m-%dT%H:%M:%S",
+        df[col_name],
+        format=format_,
     )
     df = _sort(df)
+    df["date_time"] = df["date_time"].astype("datetime64[ns]")
 
     if split:
         columns += ["day", "week", "month", "quarter", "year"]
@@ -44,6 +44,9 @@ def bewerk_timestamp(df, split=False):
         df["month"] = df["date_time"].dt.month
         df["quarter"] = df["date_time"].dt.quarter
         df["year"] = df["date_time"].dt.year
+
+        df['date'] = df["date_time"].dt.date
+        df['hour'] = df["date_time"].dt.hour
 
     print(f"Added {columns} columns to dataframe.")
 
@@ -181,13 +184,13 @@ def calculate_distance_to_point(
     ).m
 
 
-def split_in_ritten(df, t_seconden=1800):
+def split_in_ritten(df, t_seconden=1800, col_lat="latitude", col_lon="longitude"):
     """For each entity_id, split in separate bike rides.
 
     add columns with duration, distance and speed.
     """
 
-    df["duur"] = np.timedelta64(0, "s")
+    df["duur"] = np.timedelta64(0, "ns")
     df["rit_id"] = 0
     df["afstand"] = 0.0
     df["snelheid"] = 0.0
@@ -206,12 +209,13 @@ def split_in_ritten(df, t_seconden=1800):
 
         # Calculate the distance between measurements.
         df_id["afstand"] = haversine(
-            df_id.latitude,
-            df_id.longitude,
-            df_id.latitude.shift(),
-            df_id.longitude.shift(),
+            df_id[col_lat],
+            df_id[col_lon],
+            df_id[col_lat].shift(),
+            df_id[col_lon].shift(),
         )
         df_id["afstand"][rit_mask] = 0.0
+        df_id["afstand"] = df_id["afstand"].astype(float)
 
         # Calculate the speed for each measurement.
         df_id["snelheid"] = df_id["afstand"] / df_id["duur"].dt.total_seconds()

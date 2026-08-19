@@ -24,4 +24,8 @@ docs/apidocs
 # Mac
 .DS_Store
 .gitignore
-eigen_archief/
+
+.venv/
+src/snuffelfiets/.streamlit/secrets.toml
+
+.venv/

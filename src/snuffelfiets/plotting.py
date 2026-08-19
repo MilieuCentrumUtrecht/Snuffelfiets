@@ -15,8 +15,15 @@ import plotly.figure_factory as ff
 import plotly.express as px
 from plotly.colors import hex_to_rgb
 
+from shapely import Polygon, LineString, MultiPolygon, MultiLineString
+
 
 def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
+    """Maak een hexbin plot."""
+    return hexbin_map(df, hexagon_size, hexbin_args, layout_args)
+
+
+def hexbin_map(df, hexagon_size=None, hexbin_args={}, layout_args={}):
     """Maak een hexbin plot."""
 
     default_hexbin_args = dict(
@@ -35,10 +42,10 @@ def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
         labels={"color": "PM2.5"},
         center=dict(lat=52.090695, lon=5.121314),
         zoom=10,
+        map_style="carto-positron",
     )
     default_layout_args = dict(
-        mapbox_style="carto-positron",
-        margin=dict(b=0, t=0, l=0, r=0),
+        # margin=dict(b=0, t=0, l=0, r=0),
     )
 
     hexbin_args = {**default_hexbin_args, **hexbin_args}
@@ -46,20 +53,25 @@ def hexbin_mapbox(df, hexagon_size=None, hexbin_args={}, layout_args={}):
 
     if hexagon_size is not None:
         hexbin_args["nx_hexagon"] = np.ceil(
-            (df["longitude"].max() - df["longitude"].min()) / hexagon_size,
+            (df[hexbin_args["lat"]].max() - df[hexbin_args["lon"]].min()) / hexagon_size,
         ).astype("int")
 
     if hexbin_args["nx_hexagon"] > 500:
         print("Too many hexagons; please increase hexagon_size")
         return
 
-    fig = ff.create_hexbin_mapbox(**hexbin_args)
+    fig = ff.create_hexbin_map(**hexbin_args)
     fig.update_layout(**layout_args)
 
     return fig
 
 
 def line_mapbox(df, plot_args={}, layout_args={}):
+    """Maak een line plot."""
+    return line_map(df, plot_args, layout_args)
+
+
+def line_map(df, plot_args={}, layout_args={}):
     """Maak een line plot."""
 
     plot_args_defaults = dict(
@@ -70,17 +82,17 @@ def line_mapbox(df, plot_args={}, layout_args={}):
         center=dict(lat=52.090695, lon=5.121314),
         zoom=10,
         animation_frame=None,
+        map_style="carto-positron",
     )
 
     layout_args_defaults = dict(
-        mapbox_style="carto-positron",
-        margin=dict(b=0, t=0, l=0, r=0),
+        # margin=dict(b=0, t=0, l=0, r=0),
     )
 
     plot_args = {**plot_args_defaults, **plot_args}
     layout_args = {**layout_args_defaults, **layout_args}
 
-    fig = px.line_mapbox(**plot_args)
+    fig = px.line_map(**plot_args)
     fig.update_layout(**layout_args)
 
     return fig
@@ -237,3 +249,65 @@ def select_polygons(polygons_in, names, prop="statnaam"):
     polygons["features"] = feats
 
     return polygons
+
+
+def scatter_map(df, plot_args={}, layout_args={}):
+    """Maak een line plot."""
+
+    plot_args_defaults = dict(
+        data_frame=df,
+        lat="latitude",
+        lon="longitude",
+        color="rit_id",
+        center=dict(lat=52.090695, lon=5.121314),
+        zoom=10,
+        animation_frame=None,
+        map_style="carto-positron",
+    )
+
+    layout_args_defaults = dict(
+        # margin=dict(b=0, t=0, l=0, r=0),
+    )
+
+    plot_args = {**plot_args_defaults, **plot_args}
+    layout_args = {**layout_args_defaults, **layout_args}
+
+    fig = px.scatter_map(**plot_args)
+    fig.update_layout(**layout_args)
+
+    return fig
+
+
+def geometry2latlon(df, col_names=[]):
+    """Convert shapely geometry to arrays of latitudes and longitudes."""
+
+    lats, lons = [], []
+    aux = [[] for col_name in col_names]
+
+    for name, row in df.iterrows():
+
+        feature = row['geometry']
+        if isinstance(feature, (Polygon, LineString)):
+            geoms = [feature]
+        elif isinstance(feature, (MultiPolygon, MultiLineString)):
+            geoms = feature.geoms
+        else:
+            continue
+
+        for geom in geoms:
+            if isinstance(feature, (Polygon, MultiPolygon)):
+                x, y = geom.exterior.xy
+            else:
+                x, y = geom.xy
+            lats = np.append(lats, y)
+            lons = np.append(lons, x)
+            for i, col_name in enumerate(col_names):
+                aux[i] = np.append(aux[i], [row[col_name]]*len(y))
+            lats = np.append(lats, None)
+            lons = np.append(lons, None)
+            for i, col_name in enumerate(col_names):
+                aux[i] = np.append(aux[i], None)
+
+    # TODO: POINT
+
+    return lats, lons, aux

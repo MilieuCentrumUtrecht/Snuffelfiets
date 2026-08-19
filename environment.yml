@@ -15,7 +15,6 @@ dependencies:
   - nbformat>=4.2.0
   - conda-build
   - geopy
-  - pandas
   - geopandas
   - pip:
     - kaleido

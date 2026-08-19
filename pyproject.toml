@@ -14,9 +14,21 @@ authors = [
 description = "Rapporting and analysis scripts for the Milieucentrum Utrecht Snuffelfiets project"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
+dependencies = [
+  "numpy",
+  "pandas",
+  "geopandas",
+  "plotly",
+  "knmi-py",
+]
 classifiers = [
 ]
 dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "streamlit",
+]
 
 [project.urls]
 homepage = "https://qualikiz.com"
