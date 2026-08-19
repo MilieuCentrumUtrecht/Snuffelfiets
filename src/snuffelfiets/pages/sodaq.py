@@ -21,6 +21,7 @@ for k, v in st_init.items():
         st.session_state[k] = v
 
 
+
 @st.cache_data
 def load_dataframe_sodaq_air(
     filepaths: list[Path],
@@ -29,7 +30,7 @@ def load_dataframe_sodaq_air(
 
     df = pd.concat([pd.read_csv(filepath) for filepath in filepaths], axis=0)
 
-    df['entity_id'] = df['imei'].astype('category')
+    df["entity_id"] = df["imei"].astype("category")
 
     # preproc
     rit_splitter_interval = 1800
@@ -39,14 +40,14 @@ def load_dataframe_sodaq_air(
     df = analyse.split_in_ritten(
         df, t_seconden=rit_splitter_interval, col_lat="lat", col_lon="lon",
         )
-    mapper = {'pm_1': 'pm1_0', 'pm_2_5': 'pm2_5', 'pm_10': 'pm10'}
+    mapper = {"pm_1": "pm1_0", "pm_2_5": "pm2_5", "pm_10": "pm10"}
     df = df.rename(mapper, axis=1)
 
     df["hour"] = df["date_time"].dt.hour
     df["date"] = df["date_time"].dt.date
 
-    df['imei'] = df['imei'].astype('category')
-    df['rit_id'] = df['rit_id'].astype('category')
+    df["imei"] = df["imei"].astype("category")
+    df["rit_id"] = df["rit_id"].astype("category")
 
     return df
 
@@ -57,7 +58,7 @@ with st.sidebar:
         "Upload Sodaq Air CSV files", accept_multiple_files=True,
     )
     if not filepaths:
-        prefix='sodaq-air-measurements'
+        prefix="sodaq-air-measurements"
         suffix = ""
         filename = st.text_input(
             "Filename", f"{prefix}{suffix}.csv", on_change=None,
@@ -67,4 +68,54 @@ with st.sidebar:
     df_orig = load_dataframe_sodaq_air(filepaths)
 
 
-st.dataframe(df_orig)
+with st.sidebar:
+
+    format_ = "%Y-%m-%dT%H:%M:%S"
+    start = df_orig["date_time"].min().strftime(format_)
+    end = df_orig["date_time"].max().strftime(format_)
+
+    with st.expander(f"Select interval", expanded=False):
+
+        cols = st.columns(2)
+        start_date = cols[0].date_input(
+            "Start",
+            value=df_orig["date_time"].min(),
+            min_value=start, max_value=end,
+            format="YYYY-MM-DD",
+            )
+        start_time = cols[1].slider(
+            "Tijd start",
+            value=df_orig["date_time"].min().time(),
+            label_visibility="hidden",
+            )
+
+        cols = st.columns(2)
+        end_date = cols[0].date_input(
+            "Eind",
+            value=df_orig["date_time"].max(),
+            min_value=start, max_value=end,
+            format="YYYY-MM-DD",
+            )
+        end_time = cols[1].slider(
+            "Tijd eind",
+            value=df_orig["date_time"].max().time(),
+            label_visibility="hidden",
+            )
+
+        # Filter on timestamps.
+        col_name = "date_time"
+        col_range = [
+            f"{start_date} {start_time.strftime('%H:%M:%S')}",
+            f"{end_date} {end_time.strftime('%H:%M:%S')}",
+        ]
+        df = df_orig[
+            (df_orig[col_name] >= col_range[0]) & 
+            (df_orig[col_name] <= col_range[1])
+            ]
+
+        format_ = "%Y-%m-%dT%H:%M:%S"
+        start = df["date_time"].min().strftime(format_)
+        end = df["date_time"].max().strftime(format_)
+
+
+st.dataframe(df)
