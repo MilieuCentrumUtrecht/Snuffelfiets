@@ -20,6 +20,7 @@ dependencies = [
   "geopandas",
   "plotly",
   "knmi-py",
+  "streamlit",
 ]
 classifiers = [
 ]
@@ -27,7 +28,6 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = [
-    "streamlit",
 ]
 
 [project.urls]
