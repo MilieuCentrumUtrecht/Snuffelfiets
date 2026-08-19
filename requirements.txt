@@ -5,3 +5,4 @@ geopandas
 plotly
 knmi-py
 luchtkwaliteit @ git+https://github.com/michielkleinnijenhuis/luchtkwaliteit.git
+.
