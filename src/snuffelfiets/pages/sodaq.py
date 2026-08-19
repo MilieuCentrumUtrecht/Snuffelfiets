@@ -16,14 +16,6 @@ with st.sidebar:
     snuffelfiets_streamlit.page_navigation()
 
 
-st_init = {
-}
-for k, v in st_init.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
-
-
-
 @st.cache_data
 def load_dataframe_sodaq_air(
     filepaths: list[Path],
@@ -118,6 +110,16 @@ with st.sidebar:
         format_ = "%Y-%m-%dT%H:%M:%S"
         start = df["date_time"].min().strftime(format_)
         end = df["date_time"].max().strftime(format_)
+
+    with st.expander(f"Select devices", expanded=False):
+
+        ids = []
+        ids = ids or df["entity_id"].unique()
+        ids_sel = st.selectbox("device_IDs", [""] + ids.astype(str), index=0)
+        if ids_sel:
+            ids = [ids_sel]
+        if ids:
+            df = df.loc[df["entity_id"].astype(str).isin(ids)]
 
 
 st.dataframe(df)
