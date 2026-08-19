@@ -35,6 +35,10 @@ def page_navigation():
             label="Overzicht", icon="🚲",
             )
         st.page_link(
+            package_root / "pages" / "sodaq.py",
+            label="Sodaq", icon="🧪",
+            )
+        st.page_link(
             package_root / "pages" / "testfeatures.py",
             label="Testpage", icon="🧪",
             )
