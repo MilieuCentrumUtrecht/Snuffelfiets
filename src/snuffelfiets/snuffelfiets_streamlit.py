@@ -6,7 +6,7 @@ import streamlit as st
 def page_navigation():
     """Create navigation panel for pages of Snuffelfiets app."""
 
-    package_root = st.session_state.package_root
+    package_root = Path(__file__).parent
 
     filepath = package_root / "static" / "images" / "cropped-logo-mcu-1-1.png"
     st.logo(
