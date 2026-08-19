@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import geopandas as gpd
 
 import streamlit as st
 
@@ -149,5 +150,76 @@ with st.sidebar:
         max_time = df_sel_rides["date_time"].max()
 
 
-st.dataframe(df_sel_rides)
+    with st.expander("Plot settings", expanded=False):
 
+        vars = [
+            "pm10",
+            "pm2_5",
+            "pm1_0",
+            "snelheid",
+            "battery",
+            "uptime",
+            "temperature",
+            "humidity",
+            "entity_id",
+            "afstand",
+            ]
+        color_var = st.selectbox("Variabele", vars, index=1)
+
+        id_var = st.segmented_control(
+            "Category axis",
+            ["entity_id", "rit_id"],
+            default="rit_id",
+            width="stretch",
+            )
+
+        if pd.api.types.is_numeric_dtype(df[color_var]):
+            drange = [df[color_var].min(), df[color_var].max()]
+            range_color = st.slider(
+                "Colour range",
+                min_value=drange[0], max_value=drange[1],
+                value=drange,
+                )
+        else:
+            range_color = [None, None]
+
+cols_main = st.columns(2)
+con1 = cols_main[0].container()
+con2 = cols_main[1].container()
+
+with con1.expander("Ritten - scatter_map", expanded=True):
+
+    aux_df = {}
+
+    geom = gpd.points_from_xy(df["lon"], df["lat"])
+    gdf = gpd.GeoDataFrame(df, geometry=geom, crs="EPSG:4326")
+    gdf["hovertext"] = "SOD_" + gdf.index.astype(str) + "___" + gdf.entity_id.astype(str)
+    gdf = gdf[[color_var, "size", "selected_ride", "hovertext", "geometry"]]
+
+    snuffelfiets_streamlit.scatter_map(gdf, color_var, [0., range_color[1]], aux_df)
+
+
+cols = con2.columns(2)
+
+dmaptype = cols[0].radio(
+    "Graph type",
+    ["scatter", "line", "box", "violin"],
+    horizontal=True,
+    )
+
+id_var = cols[1].segmented_control(
+    "Segment by ...",
+    ["entity_id", "rit_id", "date", "hour"],
+    default="rit_id",
+    )
+
+df = df[["date_time", id_var, color_var]]
+
+with con2.expander("Devices and rides - box plot", expanded=True):
+
+    fig = snuffelfiets_streamlit.box(
+        df, id_var, color_var, range_color, dmaptype,
+        )
+    fig.update_xaxes(range=[min_time, max_time], rangeslider_visible=True)
+
+    st.plotly_chart(fig, width="stretch", config={"scrollZoom": True})
