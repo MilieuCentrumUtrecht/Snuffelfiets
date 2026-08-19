@@ -68,7 +68,7 @@ with st.sidebar:
     start = df_orig["date_time"].min().strftime(format_)
     end = df_orig["date_time"].max().strftime(format_)
 
-    with st.expander(f"Select interval", expanded=False):
+    with st.expander("Select interval", expanded=False):
 
         cols = st.columns(2)
         start_date = cols[0].date_input(
@@ -111,7 +111,7 @@ with st.sidebar:
         start = df["date_time"].min().strftime(format_)
         end = df["date_time"].max().strftime(format_)
 
-    with st.expander(f"Select devices", expanded=False):
+    with st.expander("Select devices", expanded=False):
 
         ids = []
         ids = ids or df["entity_id"].unique()
@@ -121,5 +121,33 @@ with st.sidebar:
         if ids:
             df = df.loc[df["entity_id"].astype(str).isin(ids)]
 
+    with st.expander("Select rides", expanded=True):
 
-st.dataframe(df)
+        ids = list(df.rit_id.unique())
+        selection_mode = st.segmented_control(
+            "Mode",
+            options=["single", "multi"],
+            default="multi",
+            width="stretch",
+            )
+        ids_sel = st.segmented_control(
+            "Rit IDs",
+            options=ids,
+            selection_mode=selection_mode,
+            default=ids[0] if selection_mode == "single" else ids,
+            )
+        ids_sel = ids_sel if isinstance(ids_sel, list) else [ids_sel]
+
+        df["size"] = 1.
+        df["selected_ride"] = False
+        if selection_mode == "single":
+            df.loc[df["rit_id"].isin(ids_sel), "selected_ride"] = True
+            df = df.sort_values("selected_ride", axis=0, ascending=False)
+
+        df_sel_rides = df.loc[df["rit_id"].isin(ids_sel)]
+        min_time = df_sel_rides["date_time"].min()
+        max_time = df_sel_rides["date_time"].max()
+
+
+st.dataframe(df_sel_rides)
+
