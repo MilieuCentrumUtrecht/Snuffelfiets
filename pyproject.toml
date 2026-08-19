@@ -35,7 +35,6 @@ issues = "https://gitlab.com/qualikiz-group/QuaLiKiz-pythontools/-/issues"
 
 [tool.setuptools]
 include-package-data = true # Include files specified by MANIFEST.in
-package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
