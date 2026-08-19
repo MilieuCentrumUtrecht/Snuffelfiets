@@ -41,3 +41,7 @@ include-package-data = true # Include files specified by MANIFEST.in
 
 [tool.versioneer]
 # Empty for now
+
+[tool.poetry]
+requires-poetry = ">=2.0"
+version = "0.0.0"
