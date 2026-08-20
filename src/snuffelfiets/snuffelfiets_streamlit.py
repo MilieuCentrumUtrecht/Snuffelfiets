@@ -1,4 +1,5 @@
 from pathlib import Path
+from importlib.resources import files
 
 import streamlit as st
 
@@ -7,12 +8,13 @@ import plotly.graph_objects as go
 from snuffelfiets import plotting
 
 
-def page_navigation():
+def page_navigation(
+        ) -> None:
     """Create navigation panel for pages of Snuffelfiets app."""
 
-    package_root = Path(__file__).parent
-
-    filepath = package_root / "static" / "images" / "cropped-logo-mcu-1-1.png"
+    package_root = files("snuffelfiets")
+    image_dir = package_root / "static" / "images"
+    filepath = image_dir / "cropped-logo-mcu-1-1.png"
     st.logo(
         filepath,
         size="medium",
@@ -55,7 +57,7 @@ def init_session_state(
         ) -> None:
     """Ensure session_state initialization."""
 
-    package_root = Path(__file__).parent
+    package_root = files("snuffelfiets")
 
     st_init = {
         "package_root": package_root,

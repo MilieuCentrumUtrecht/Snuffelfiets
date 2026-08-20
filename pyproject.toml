@@ -39,5 +39,8 @@ include-package-data = true # Include files specified by MANIFEST.in
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+snuffelfiets = ["static/**/*"]
+
 [tool.versioneer]
 # Empty for now

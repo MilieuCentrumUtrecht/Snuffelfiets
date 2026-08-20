@@ -1,12 +1,8 @@
-from pathlib import Path
+from importlib.resources import files
 
 import streamlit as st
 
 from snuffelfiets import snuffelfiets_streamlit
-
-
-PACKAGE_ROOT = Path(__file__).parent
-
 
 st.set_page_config(
     page_title="Snuffelfiets dashboard",
@@ -20,7 +16,6 @@ st.set_page_config(
 ckan_secret = "CKAN_API_KEY" in st.secrets.keys()
 st_init = {"api_key": st.secrets["CKAN_API_KEY"] if ckan_secret else ""}
 snuffelfiets_streamlit.init_session_state(st_init)
-
 
 with st.sidebar:
 
