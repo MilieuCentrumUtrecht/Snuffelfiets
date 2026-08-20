@@ -1,10 +1,15 @@
 from pathlib import Path
 from importlib.resources import files
 
+import urllib
+
 import streamlit as st
+
+import geopandas as gpd
 
 import plotly.express as px
 import plotly.graph_objects as go
+
 from snuffelfiets import plotting
 
 
@@ -154,3 +159,74 @@ def update_selections():
         ]
 
 
+def download_borders(directory, year, level, gentype='gegeneraliseerd'):
+    """Download borders from PDOK."""
+
+    if level.startswith('gemeente'): level = 'gemeente'
+
+    filename = f'{level}_{gentype}_{year:d}.geojson'
+    filepath = Path(directory, filename)
+
+    if not Path.exists(filepath):
+
+        base_url = 'https://service.pdok.nl/cbs/gebiedsindelingen'
+        service = 'GetFeature&service=WFS&version=2.0.0'
+        typename = f'typeName={level}_{gentype}'
+        outputformat = f'outputFormat=json'
+        cosys = f'srsName=EPSG:4326'
+        request_string = f'{service}&{typename}&{outputformat}&{cosys}'
+        url = f'{base_url}/{year:d}/wfs/v1_0?request={request_string}'
+
+        urllib.request.urlretrieve(url, filepath)
+
+    return filepath
+
+
+def get_bounds(year=2023, level="provincie", statnaam=["Utrecht"]):
+
+    level = st.session_state["level"]
+    statnaam = st.session_state["names"]
+
+    filepath = download_borders(st.session_state.data_directory, year, level)
+
+    df_bounds = gpd.read_file(filepath).to_crs(epsg=4326)
+
+    df_bounds = df_bounds[df_bounds.statnaam.isin(statnaam)]
+
+    polys = []
+    for naam in statnaam:
+        df_poly = df_bounds[df_bounds.statnaam==naam]
+        d = {"name": f"{level} {naam}", "mode": "lines"}
+        d["lat"], d["lon"], aux = plotting.geometry2latlon(df_poly)
+        polys.append(d)
+
+    df_dissolved = df_bounds.dissolve()
+    map_center = {
+        "lat": df_dissolved.centroid.y.values[0],
+        "lon": df_dissolved.centroid.x.values[0],
+        }
+
+    return df_bounds, map_center, polys
+
+
+def map_bounding():
+    level = st.segmented_control(
+        "Map focus",
+        options=["provincie", "gemeente"],
+        default="provincie",
+        )
+    filepath = download_borders(st.session_state.data_directory, 2023, level)
+    df_bounds = gpd.read_file(filepath).to_crs(epsg=4326)
+    names = st.multiselect(f"Naam {level}", list(df_bounds["statnaam"]), default=["Utrecht"])
+    st.session_state["level"] = level
+    st.session_state["names"] = names
+    map_filter = st.segmented_control(
+        "restrict",
+        options=["within bounding box", "within polygons", "no filtering"],
+        default="within bounding box",
+        )
+    df_bounds, map_center, d = get_bounds()  # FIXME: orig
+    st.session_state["map_center"] = map_center
+    st.session_state["map_polys"] = d
+
+    return map_filter, df_bounds

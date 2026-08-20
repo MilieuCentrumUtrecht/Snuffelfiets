@@ -14,7 +14,14 @@ st.set_page_config(
 
 # initialize
 ckan_secret = "CKAN_API_KEY" in st.secrets.keys()
-st_init = {"api_key": st.secrets["CKAN_API_KEY"] if ckan_secret else ""}
+st_init = {
+    "api_key": st.secrets["CKAN_API_KEY"] if ckan_secret else "",
+    'map_center': None,  # TODO: prov center from rapportage
+    'map_polys': None,
+    "level": "provincie",
+    "statnaam": ["Utrecht"],
+    'selection': [],
+    }
 snuffelfiets_streamlit.init_session_state(st_init)
 
 with st.sidebar:
@@ -29,7 +36,9 @@ with st.sidebar:
 
     st.session_state.data_directory = st.text_input(
         "Snuffelfiets data directory",
-        value=PACKAGE_ROOT / "static" / "data",
+        value=files("snuffelfiets") / "static" / "data",
         )
+
+    snuffelfiets_streamlit.map_bounding()
 
     st.divider()
