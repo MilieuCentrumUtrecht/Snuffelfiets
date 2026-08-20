@@ -37,15 +37,15 @@ def page_navigation(
     with st.expander("Navigatie", expanded=True):
 
         st.page_link(
-            package_root / "snuffelfiets_app.py",
+            "snuffelfiets_app.py",
             label="Overzicht", icon="🚲",
             )
         st.page_link(
-            package_root / "pages" / "sodaq.py",
+            "pages/sodaq.py",
             label="Sodaq", icon="🧪",
             )
         st.page_link(
-            package_root / "pages" / "testfeatures.py",
+            "pages/testfeatures.py",
             label="Testpage", icon="🧪",
             )
 
