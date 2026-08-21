@@ -1,3 +1,4 @@
+from pathlib import Path
 from importlib.resources import files
 
 import streamlit as st
@@ -24,6 +25,7 @@ st_init = {
     }
 snuffelfiets_streamlit.init_session_state(st_init)
 
+
 with st.sidebar:
 
     snuffelfiets_streamlit.page_navigation()
@@ -34,9 +36,11 @@ with st.sidebar:
         disabled=True,
         )
 
-    st.session_state.data_directory = st.text_input(
+    st.text_input(
         "Snuffelfiets data directory",
-        value=files("snuffelfiets") / "static" / "data",
+        key="data_directory",
+        value=str(Path("~").expanduser() / "snuffelfiets_data"),
+        on_change=snuffelfiets_streamlit.validate_directory,
         )
 
     snuffelfiets_streamlit.map_bounding()

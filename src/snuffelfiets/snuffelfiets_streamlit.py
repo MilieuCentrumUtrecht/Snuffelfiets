@@ -62,16 +62,21 @@ def init_session_state(
         ) -> None:
     """Ensure session_state initialization."""
 
-    package_root = files("snuffelfiets")
-
     st_init = {
-        "package_root": package_root,
-        "data_directory": package_root / "static" / "data",
+        "package_root": files("snuffelfiets"),
+        "data_directory": str(Path("~").expanduser() / "snuffelfiets_data"),
     }
     st_init = {**items, **st_init}
     for k, v in st_init.items():
         if k not in st.session_state:
             st.session_state[k] = v
+
+    validate_directory()
+
+
+def validate_directory():
+    """Ensure a directory for external data."""
+    Path(st.session_state.data_directory).mkdir(parents=True, exist_ok=True)
 
 
 def box(df, id_var, color_var, range_color, dmaptype="box"):

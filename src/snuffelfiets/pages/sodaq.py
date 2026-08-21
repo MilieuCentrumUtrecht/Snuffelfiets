@@ -58,7 +58,8 @@ with st.sidebar:
         filename = st.text_input(
             "Filename", f"{prefix}{suffix}.csv", on_change=None,
             )
-        filepaths = [Path(st.session_state.data_directory) / filename]
+        test_data = Path(st.session_state.package_root) / "static" / "data"
+        filepaths = [test_data / filename]
 
     df_orig = load_dataframe_sodaq_air(filepaths)
 
