@@ -151,7 +151,6 @@ with st.sidebar:
         min_time = df_sel_rides["date_time"].min()
         max_time = df_sel_rides["date_time"].max()
 
-
     with st.expander("Plot settings", expanded=False):
 
         vars = [
@@ -176,14 +175,16 @@ with st.sidebar:
             )
 
         if pd.api.types.is_numeric_dtype(df[color_var]):
-            drange = [df[color_var].min(), df[color_var].max()]
+            drange = [0., df[color_var].max()]
             range_color = st.slider(
                 "Colour range",
-                min_value=drange[0], max_value=drange[1],
+                min_value=drange[0],
+                max_value=drange[1],
                 value=drange,
                 )
         else:
             range_color = [None, None]
+
 
 cols_main = st.columns(2)
 con1 = cols_main[0].container()
