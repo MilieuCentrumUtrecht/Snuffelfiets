@@ -117,7 +117,8 @@ with st.sidebar:
 
         ids = []
         ids = ids or df["entity_id"].unique()
-        ids_sel = st.selectbox("device_IDs", [""] + ids.astype(str), index=0)
+        ids = list(ids.astype(str))
+        ids_sel = st.selectbox("device_IDs", [""] + ids, index=0)
         if ids_sel:
             ids = [ids_sel]
         if ids:
