@@ -201,19 +201,22 @@ with con1.expander("Ritten - scatter_map", expanded=True):
     snuffelfiets_streamlit.scatter_map(gdf, color_var, [0., range_color[1]], aux_df)
 
 
-cols = con2.columns(2)
 
-dmaptype = cols[0].radio(
-    "Graph type",
-    ["scatter", "line", "box", "violin"],
-    horizontal=True,
-    )
+with st.sidebar:
+    # cols = st.columns(2)
+    dmaptype = st.radio(
+        "Graph type",
+        ["scatter", "line", "box"],  #, "violin"],
+        horizontal=True,
+        width="stretch",
+        )
 
-id_var = cols[1].segmented_control(
-    "Segment by ...",
-    ["entity_id", "rit_id", "date", "hour"],
-    default="rit_id",
-    )
+    id_var = st.segmented_control(
+        "Segment by ...",
+        ["entity_id", "rit_id", "date", "hour"],
+        default="rit_id",
+        width="stretch",
+        )
 
 df = df[["date_time", id_var, color_var]]
 
