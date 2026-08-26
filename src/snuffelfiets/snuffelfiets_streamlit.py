@@ -12,6 +12,8 @@ import plotly.graph_objects as go
 
 from snuffelfiets import plotting
 
+from luchtkwaliteit import lml
+
 
 def page_navigation(
         ) -> None:
@@ -173,7 +175,7 @@ def scatter_map(df, color_var="pm2_5", range_color=[0., 40.], aux_df={}):
             ),
             margin=dict(b=120),
             legend=dict(
-                orientation="h",
+                # orientation="h",
                 yanchor="top",
                 y=-0.05,
                 xanchor="left",
@@ -267,3 +269,26 @@ def map_bounding():
     st.session_state["map_polys"] = d
 
     return map_filter, df_bounds
+
+
+@st.cache_data
+def get_stations():
+    return lml.get_stations()
+
+
+def aux_trace_lml(station_numbers):
+
+    x, y, hovertext = [], [], []
+    for station_number in station_numbers:
+        station = lml.get_station(station_number[:7])
+        x.append(station["geometry"]["coordinates"][0])
+        y.append(station["geometry"]["coordinates"][1])
+        # hovertext.append(f"LML_{station_number}")
+
+    geom = gpd.points_from_xy(x, y)
+    gdf = gpd.GeoDataFrame(data={"station_numbers": station_numbers}, geometry=geom, crs="EPSG:4326")
+    gdf["hovertext"] = "LML_" + gdf.station_numbers
+
+    return gdf
+
+

@@ -10,6 +10,8 @@ from snuffelfiets import (
     snuffelfiets_streamlit,
     )
 
+from luchtkwaliteit import lml
+
 
 snuffelfiets_streamlit.init_session_state()
 
@@ -47,6 +49,16 @@ def load_dataframe_sodaq_air(
     return df
 
 
+@st.cache_data
+def load_lml_data(start, end, obsprop="PM25", thing_ids=[]):
+
+    # add LML # NOTE: one week max!, 100 requests per 5 minutes
+    base_url = "https://api.luchtmeetnet.nl/open_api"
+    thing_ids =  thing_ids or ["NL10636", "NL10639", "NL10643", "NL10644"]
+    if thing_ids:
+        return lml.load_dataframe(thing_ids, base_url, obsprop, start, end)
+
+
 with st.sidebar:
 
     filepaths = st.file_uploader(
@@ -62,6 +74,11 @@ with st.sidebar:
         filepaths = [test_data / filename]
 
     df_orig = load_dataframe_sodaq_air(filepaths)
+
+    # Get lml data for the full day.
+    start_ = df_orig["date_time"].min().strftime("%Y-%m-%dT00:00:00")
+    end_ = df_orig["date_time"].max().strftime("%Y-%m-%dT23:59:59")
+    df_lml_orig = load_lml_data(start_, end_)  # Pre-load Utrecht
 
 
 with st.sidebar:
@@ -107,6 +124,10 @@ with st.sidebar:
         df = df_orig[
             (df_orig[col_name] >= col_range[0]) & 
             (df_orig[col_name] <= col_range[1])
+            ]
+        df_lml = df_lml_orig[
+            (df_lml_orig[col_name] >= col_range[0]) &
+            (df_lml_orig[col_name] <= col_range[1])
             ]
 
         format_ = "%Y-%m-%dT%H:%M:%S"
@@ -191,6 +212,24 @@ with st.sidebar:
             default="horizontal",
         )
 
+    st.session_state["lml"] = st.checkbox("Luchtmeetnet", value=False)
+    if st.session_state.lml:
+        station_numbers_all = [
+            f"{station['number']} - {station['location']}"
+            for station in snuffelfiets_streamlit.get_stations()
+            ]
+        defaults = [
+            "NL10636 - Utrecht-Kardinaal de Jongweg",
+            "NL10639 - Utrecht-Constant Erzeijstraat",
+            "NL10643 - Utrecht-Griftpark",
+            "NL10644 - Cabauw-Wielsekade",
+            ]
+        st.session_state["lml_station_numbers"] = st.multiselect(
+            "Stations", station_numbers_all, default=defaults
+            )
+
+    st.divider()
+
 cols_main = st.columns(2)
 con1 = cols_main[0].container()
 con2 = cols_main[1].container()
@@ -203,6 +242,11 @@ with con1.expander("Ritten - scatter_map", expanded=True):
     gdf = gpd.GeoDataFrame(df, geometry=geom, crs="EPSG:4326")
     gdf["hovertext"] = "SOD_" + gdf.index.astype(str) + "___" + gdf.entity_id.astype(str)
     gdf = gdf[[color_var, "size", "selected_ride", "hovertext", "geometry"]]
+
+    if st.session_state.lml:
+        aux_df["Landelijk Meetnet"] = snuffelfiets_streamlit.aux_trace_lml(
+            st.session_state.lml_station_numbers
+            )
 
     snuffelfiets_streamlit.scatter_map(gdf, color_var, [0., range_color[1]], aux_df)
 
@@ -225,6 +269,21 @@ with st.sidebar:
         )
 
 df = df[["date_time", id_var, color_var]]
+
+
+if st.session_state.lml:
+
+    thing_ids = [x[:7] for x in st.session_state["lml_station_numbers"]]
+    df_lml = df_lml[df_lml.station_number.isin(thing_ids)]
+
+    obsprop = "PM25"
+
+    df_lml = df_lml.rename({obsprop: color_var, 'thing_id': id_var}, axis=1)
+    df_lml = df_lml[['date_time', id_var, color_var]]
+    df = pd.concat([df, df_lml], axis=0)
+
+
+
 
 with con2.expander("Devices and rides - box plot", expanded=True):
 

@@ -23,6 +23,8 @@ st_init = {
     "statnaam": ["Utrecht"],
     'selection': [],
     "legend_orientation": "horizontal",
+    'lml': True,
+    'lml_station_numbers': [],
     }
 snuffelfiets_streamlit.init_session_state(st_init)
 
