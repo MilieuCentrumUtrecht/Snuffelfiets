@@ -110,6 +110,17 @@ def box(df, id_var, color_var, range_color, dmaptype="box"):
     if len(df[id_var].unique()) > 20:
         fig.update_xaxes(rangeslider_visible=True)
 
+    if st.session_state["legend_orientation"] == "horizontal":
+        fig.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=1.05,
+                xanchor="center",
+                x=0.5,
+            )
+        )
+
     return fig
 
 
@@ -148,6 +159,27 @@ def scatter_map(df, color_var="pm2_5", range_color=[0., 40.], aux_df={}):
         fig_map.add_trace(go.Scattermap(**d))
 
     # fig_map.update_geos(fitbounds="locations")
+
+    if st.session_state["legend_orientation"] == "horizontal":
+        fig_map.update_layout(
+            coloraxis_colorbar=dict(
+                orientation="h",
+                yanchor="top",
+                y=-0.05,
+                xanchor="left",
+                x=0.0,
+                len=0.7,
+                thickness=20,
+            ),
+            margin=dict(b=120),
+            legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=-0.05,
+                xanchor="left",
+                x=0.8,
+            )
+        )
 
     st.plotly_chart(fig_map, key="fig_map", width="stretch",
         selection_mode=("points", "box", "lasso"),

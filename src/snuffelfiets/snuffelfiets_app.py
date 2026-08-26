@@ -22,6 +22,7 @@ st_init = {
     "level": "provincie",
     "statnaam": ["Utrecht"],
     'selection': [],
+    "legend_orientation": "horizontal",
     }
 snuffelfiets_streamlit.init_session_state(st_init)
 

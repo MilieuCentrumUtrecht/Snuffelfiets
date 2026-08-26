@@ -185,6 +185,11 @@ with st.sidebar:
         else:
             range_color = [None, None]
 
+        st.session_state["legend_orientation"] = st.segmented_control(
+            "Legend orientation",
+            ["horizontal", "vertical"],
+            default="horizontal",
+        )
 
 cols_main = st.columns(2)
 con1 = cols_main[0].container()
