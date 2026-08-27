@@ -234,7 +234,7 @@ cols_main = st.columns(2)
 con1 = cols_main[0].container()
 con2 = cols_main[1].container()
 
-with con1.expander("Ritten - scatter_map", expanded=True):
+with con1:  # .expander("Ritten - scatter_map", expanded=True):
 
     aux_df = {}
 
@@ -285,11 +285,12 @@ if st.session_state.lml:
 
 
 
-with con2.expander("Devices and rides - box plot", expanded=True):
+with con2:  # .expander("Devices and rides - box plot", expanded=True):
 
     fig = snuffelfiets_streamlit.box(
         df, id_var, color_var, range_color, dmaptype,
         )
-    fig.update_xaxes(range=[min_time, max_time], rangeslider_visible=True)
+    fig.update_xaxes(range=[min_time, max_time],
+                     rangeslider_visible=selection_mode=="single")
 
     st.plotly_chart(fig, width="stretch", config={"scrollZoom": True})

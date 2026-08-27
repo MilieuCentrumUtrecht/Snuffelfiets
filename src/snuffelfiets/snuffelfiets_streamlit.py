@@ -141,7 +141,7 @@ def scatter_map(df, color_var="pm2_5", range_color=[0., 40.], aux_df={}):
         center=st.session_state.map_center,
         height=800,
         map_style="carto-positron",
-        title=f"Metingen - gekleurd voor {color_var}",
+        # title=f"Metingen - gekleurd voor {color_var}",
         # size="size",
         animation_frame="selected_ride",
         )
