@@ -201,7 +201,7 @@ def split_in_ritten(df, t_seconden=1800, col_lat="latitude", col_lon="longitude"
         df_id["duur"] = df_id["date_time"].diff().fillna(np.timedelta64(0, "s"))
         # Threshold the time interval to identify new rides.
         rit_mask = df_id["duur"] >= pd.Timedelta(seconds=t_seconden)
-        df_id["duur"][rit_mask] = np.timedelta64(0, "s")
+        df_id.loc[rit_mask, ["duur"]] = np.timedelta64(0, "s")
 
         # Fill the rit_id column.
         df_id["rit_id"] = df["rit_id"].max() + 1
@@ -214,7 +214,7 @@ def split_in_ritten(df, t_seconden=1800, col_lat="latitude", col_lon="longitude"
             df_id[col_lat].shift(),
             df_id[col_lon].shift(),
         )
-        df_id["afstand"][rit_mask] = 0.0
+        df_id.loc[rit_mask, ["afstand"]] = 0.0
         df_id["afstand"] = df_id["afstand"].astype(float)
 
         # Calculate the speed for each measurement.
