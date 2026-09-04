@@ -18,32 +18,84 @@ snuffelfiets_streamlit.init_session_state()
 with st.sidebar:
     snuffelfiets_streamlit.page_navigation()
 
+MAPPER_LEGACY = {
+    "recording_timestamp": "created_at",  # 2019-05-09T 21:02:14 -> 2026-08-28T 07:55:31.735223
+    "entity_id": "imei",
+    "latitude": "lat",
+    "longitude": "lon",
+    "sat_no" : "sat_no",  # N/A
+    "voltage": "battery",
+    "uptime": "uptime",  # N/A
+    "temperature": "temperature",
+    "humidity": "humidity",
+    "pm1_0": "pm_1",
+    "pm2_5": "pm_2_5",
+    "pm10": "pm_10",
+}
 
 @st.cache_data
-def load_dataframe_sodaq_air(
+def load_dataframe(
     filepaths: list[Path],
     ) -> pd.DataFrame:
-    """Load a dataframe from Sodaq Air CSV files."""
+    """Load a dataframe from Sodaq CSV files."""
 
-    df = pd.concat([pd.read_csv(filepath) for filepath in filepaths], axis=0)
-
-    df["entity_id"] = df["imei"].astype("category")
-
-    # preproc
-    rit_splitter_interval = 1800
-    df = analyse.bewerk_timestamp(
-        df, split=True, col_name="created_at", format_="%Y-%m-%dT%H:%M:%S.%f",
+    return pd.concat(
+        [prep_dataframe_sodaq(pd.read_csv(filepath))
+         for filepath in filepaths],
+        axis=0,
         )
-    df = analyse.split_in_ritten(
-        df, t_seconden=rit_splitter_interval, col_lat="lat", col_lon="lon",
-        )
+
+
+def prep_dataframe_sodaq(
+    df: pd.DataFrame,
+    rit_splitter_interval=1800,
+    col_T="created_at",
+    col_id="imei",
+    col_lat="lat",
+    col_lon="lon",
+    ) -> pd.DataFrame:
+    """Preprocess a dataframe from Sodaq CSV files.
+
+    knowyourair.net raw data downloads
+        created_at,imei,lat,lon,sat_no,battery,uptime,
+        temperature,humidity,pm_1,pm_2_5,pm_10
+    CKAN database (legacy)
+        _id,entity_id,recording_timestamp,receive_timestamp,acc_max,error_code,
+        horizontal_accuracy,humidity,latitude,longitude,no2,pm10,pm1_0,pm2_5,
+        pressure,temperature,version_major,version_minor,vertical_accuracy,voc,
+        voltage
+    """
+
+    # legacy column names to Sodaq Air (knowyourair.net downloads)
+    if "recording_timestamp" in df.columns:
+        df["sat_no"] = -1
+        df["uptime"] = -1
+        df = df[list(MAPPER_LEGACY.keys())]
+        df = df.rename(columns=MAPPER_LEGACY)
+        format_T = "%Y-%m-%dT%H:%M:%S"
+    else:
+        format_T = "%Y-%m-%dT%H:%M:%S.%f"
+
+    df["entity_id"] = df[col_id].astype("category")
+
+    # rename to legacy format for PM columns
     mapper = {"pm_1": "pm1_0", "pm_2_5": "pm2_5", "pm_10": "pm10"}
     df = df.rename(mapper, axis=1)
 
+    # time breakdown
+    df = analyse.bewerk_timestamp(
+        df, split=True, col_name=col_T, format_=format_T,
+        )
     df["hour"] = df["date_time"].dt.hour
     df["date"] = df["date_time"].dt.date
 
-    df["imei"] = df["imei"].astype("category")
+    # split in rides
+    df = analyse.split_in_ritten(
+        df, t_seconden=rit_splitter_interval,
+        col_lat=col_lat, col_lon=col_lon,
+        )
+
+    df[col_id] = df[col_id].astype("category")
     df["rit_id"] = df["rit_id"].astype("category")
 
     return df
@@ -73,7 +125,7 @@ with st.sidebar:
         test_data = Path(st.session_state.package_root) / "static" / "data"
         filepaths = [test_data / filename]
 
-    df_orig = load_dataframe_sodaq_air(filepaths)
+    df_orig = load_dataframe(filepaths)
 
     # Get lml data for the full day.
     start_ = df_orig["date_time"].min().strftime("%Y-%m-%dT00:00:00")
@@ -267,6 +319,7 @@ with st.sidebar:
         default="rit_id",
         width="stretch",
         )
+
 
 df = df[["date_time", id_var, color_var]]
 
